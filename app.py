@@ -22,7 +22,6 @@ def dapatkan_koneksi_sheets():
 
 sheet = dapatkan_koneksi_sheets()
 
-# Load Data
 df_histori = pd.DataFrame()
 if sheet:
     try:
@@ -30,7 +29,7 @@ if sheet:
         df_histori = pd.DataFrame(data)
         df_histori = df_histori.fillna("-")
         
-        # Konversi tipe data agar tidak eror
+        # Konversi tipe data
         df_histori["Tanggal Input"] = pd.to_datetime(df_histori["Tanggal Input"], errors='coerce')
         df_histori["Tanggal Pengambilan"] = pd.to_datetime(df_histori["Tanggal Pengambilan"], errors='coerce')
         df_histori["Total Bayar Seharusnya"] = pd.to_numeric(df_histori["Total Bayar Seharusnya"], errors='coerce').fillna(0)
@@ -64,13 +63,7 @@ with tab_ops:
         tgl_ambil = st.date_input("Tanggal Pengambilan:", value=datetime.now() + timedelta(days=1))
         
         if st.button("Simpan Orderan", type="primary"):
-            now = datetime.now()
-            # Daftar data sesuai 16 kolom:
-            data_baru = [
-                now.strftime("%Y-%m-%d"), now.strftime("%H:%M"), nama, produk, tema, nama, 
-                input_hp, metode, alamat, catatan, tgl_ambil.strftime("%Y-%m-%d"), 
-                total, dp, (total - dp), "Belum Selesai", nama_admin
-            ]
+            data_baru = [datetime.now().strftime("%Y-%m-%d"), datetime.now().strftime("%H:%M"), nama, produk, tema, nama, input_hp, metode, alamat, catatan, tgl_ambil.strftime("%Y-%m-%d"), total, dp, (total - dp), "Belum Selesai", nama_admin]
             sheet.append_row(data_baru)
             st.success("Data berhasil disimpan!")
             st.rerun()
@@ -79,21 +72,26 @@ with tab_ops:
     if not df_histori.empty:
         df_aktif = df_histori[df_histori["Status"] == "Belum Selesai"].copy()
         today = datetime.now().date()
-        tabs = st.tabs(["🚨 Semua", "⏳ H-1", "🗓️ H-2", "📅 H-3", "📆 H-7", "✅ Selesai"])
+        tabs = st.tabs(["🚨 Semua", "⏳ H-1", "🗓️ H-2", "📅 H-3", "📆 H-7", "✅ Tandai Selesai"])
         
         def filter_tgl(df, days):
-            # Cek apakah kolom sudah datetime
-            if pd.api.types.is_datetime64_any_dtype(df["Tanggal Pengambilan"]):
-                target = today + timedelta(days=days)
-                return df[df["Tanggal Pengambilan"].dt.date == target]
-            return pd.DataFrame()
+            target = today + timedelta(days=days)
+            return df[df["Tanggal Pengambilan"].dt.date == target]
 
         with tabs[0]: st.dataframe(df_aktif, use_container_width=True)
         with tabs[1]: st.dataframe(filter_tgl(df_aktif, 1), use_container_width=True)
         with tabs[2]: st.dataframe(filter_tgl(df_aktif, 2), use_container_width=True)
         with tabs[3]: st.dataframe(filter_tgl(df_aktif, 3), use_container_width=True)
         with tabs[4]: st.dataframe(filter_tgl(df_aktif, 7), use_container_width=True)
-        with tabs[5]: st.dataframe(df_histori[df_histori["Status"] == "Selesai"], use_container_width=True)
+        
+        with tabs[5]:
+            pilihan = st.selectbox("Pilih pesanan yang selesai:", df_aktif["Nama Pelanggan"] + " - " + df_aktif["Pilih Jenis Produk"])
+            if st.button("Ubah Status ke Selesai"):
+                # Mencari indeks baris (ditambah 2 karena header sheet)
+                idx = df_aktif[df_aktif["Nama Pelanggan"] + " - " + df_aktif["Pilih Jenis Produk"] == pilihan].index[0]
+                sheet.update_cell(idx + 2, 15, "Selesai")
+                st.success("Status diupdate! Refresh halaman.")
+                st.rerun()
 
 with tab_laporan:
     st.subheader("📊 Analisis Penjualan")
@@ -101,7 +99,6 @@ with tab_laporan:
         df_valid = df_histori.dropna(subset=["Tanggal Input"]).copy()
         now = datetime.now()
         df_bulan = df_valid[(df_valid["Tanggal Input"].dt.month == now.month) & (df_valid["Tanggal Input"].dt.year == now.year)]
-        
         c1, c2, c3 = st.columns(3)
         c1.metric("Total Order", len(df_bulan))
         c2.metric("Omset", f"Rp {df_bulan['Total Bayar Seharusnya'].sum():,.0f}")
