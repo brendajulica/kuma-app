@@ -77,8 +77,11 @@ st.write("---")
 if st.button("Simpan Orderan", type="primary"):
     if nama_pelanggan:
         if sheet is not None:
+            # MEMAKSA SISTEM MEMBACA JAM WIB INDONESIA (ASIA/JAKARTA)
+            jam_wib = pd.Timestamp.now(tz="Asia/Jakarta").strftime("%Y-%m-%d %H:%M")
+            
             new_row = [
-                pd.Timestamp.now().strftime("%Y-%m-%d %H:%M"),
+                jam_wib,  # Jam input terjamin real-time sesuai HP toko Anda
                 nama_pelanggan,
                 produk,
                 tema_warna if tema_warna else "-",
@@ -100,7 +103,7 @@ if st.button("Simpan Orderan", type="primary"):
         st.error("Nama pelanggan wajib diisi!")
 
 # ==============================================================================
-# 3. 🏛️ DASHBOARD PEMILAH LIVE (H-1 & H-2 YANG SUDAH DIPERBAIKI)
+# 3. 🏛️ DASHBOARD PEMILAH LIVE (H-1 & H-2 REAL-TIME)
 # ==============================================================================
 if sheet is not None:
     try:
@@ -111,9 +114,10 @@ if sheet is not None:
             st.write("---")
             st.write("## 🏛️ DASHBOARD LIVE ORDERAN KUMA GIFT")
             
-            # Hitung otomatis tanggal besok (H-1) dan lusa (H-2)
-            besok_str = (datetime.today() + timedelta(days=1)).strftime("%Y-%m-%d")
-            lusa_str = (datetime.today() + timedelta(days=2)).strftime("%Y-%m-%d")
+            # Hitung otomatis tanggal besok (H-1) dan lusa (H-2) berdasarkan waktu Indonesia
+            hari_ini_wib = pd.Timestamp.now(tz="Asia/Jakarta")
+            besok_str = (hari_ini_wib + timedelta(days=1)).strftime("%Y-%m-%d")
+            lusa_str = (hari_ini_wib + timedelta(days=2)).strftime("%Y-%m-%d")
             
             # Memilah data berdasarkan kolom Tanggal Pengambilan
             if "Tanggal Pengambilan" in df_all.columns:
