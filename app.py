@@ -55,7 +55,6 @@ alamat = "-"
 if metode == "Antar / Kirim":
     alamat = st.text_area("Alamat Lengkap Pengiriman:")
 
-# --- FITUR BARU: CATATAN KHUSUS ---
 catatan_khusus = st.text_area("Catatan Khusus (Isi Kartu Ucapan / Request Pita / Jam Kirim):", value="-")
 
 # Tanggal Pengambilan otomatis default ke tanggal besok (H-1)
@@ -80,7 +79,6 @@ if st.button("Simpan Orderan", type="primary"):
         if sheet is not None:
             jam_wib = pd.Timestamp.now(tz="Asia/Jakarta").strftime("%Y-%m-%d %H:%M")
             
-            # Data di bawah ini harus urut pas dengan kolom Google Sheets Anda
             new_row = [
                 jam_wib,
                 nama_pelanggan,
@@ -90,7 +88,7 @@ if st.button("Simpan Orderan", type="primary"):
                 no_hp_penerima if no_hp_penerima else "-",
                 metode,
                 alamat if alamat else "-",
-                catatan_khusus if catatan_khusus else "-",  # Memasukkan catatan khusus
+                catatan_khusus if catatan_khusus else "-",
                 tanggal_ambil.strftime("%Y-%m-%d"),
                 int(total_bayar),
                 int(dp_awal),
@@ -105,7 +103,7 @@ if st.button("Simpan Orderan", type="primary"):
         st.error("Nama pelanggan wajib diisi!")
 
 # ==============================================================================
-# 3. 🏛️ DASHBOARD PEMILAH LIVE (H-1 & H-2 REAL-TIME)
+# 3. 🏛️ DASHBOARD PEMILAH LIVE (H-1, H-2, & H-3 REAL-TIME)
 # ==============================================================================
 if sheet is not None:
     try:
@@ -116,18 +114,29 @@ if sheet is not None:
             st.write("---")
             st.write("## 🏛️ DASHBOARD LIVE ORDERAN KUMA GIFT")
             
+            # Hitung otomatis tanggal H-1, H-2, dan H-3 berdasarkan waktu Indonesia
             hari_ini_wib = pd.Timestamp.now(tz="Asia/Jakarta")
             besok_str = (hari_ini_wib + timedelta(days=1)).strftime("%Y-%m-%d")
             lusa_str = (hari_ini_wib + timedelta(days=2)).strftime("%Y-%m-%d")
+            hari_ke3_str = (hari_ini_wib + timedelta(days=3)).strftime("%Y-%m-%d") # Logika tanggal H-3
             
+            # Memilah data berdasarkan kolom Tanggal Pengambilan
             if "Tanggal Pengambilan" in df_all.columns:
                 df_h1 = df_all[df_all["Tanggal Pengambilan"] == besok_str]
                 df_h2 = df_all[df_all["Tanggal Pengambilan"] == lusa_str]
+                df_h3 = df_all[df_all["Tanggal Pengambilan"] == hari_ke3_str] # Filter data H-3
             else:
                 df_h1 = pd.DataFrame()
                 df_h2 = pd.DataFrame()
+                df_h3 = pd.DataFrame()
             
-            tab1, tab2, tab3 = st.tabs(["🚨 Semua Orderan", "⏳ Orderan H-1 (Esok Hari)", "🗓️ Orderan H-2 (Lusa)"])
+            # Tampilan menu TAB Dashboard (Ditambah opsi H-3)
+            tab1, tab2, tab3, tab4 = st.tabs([
+                "🚨 Semua Orderan", 
+                "⏳ Orderan H-1 (Esok Hari)", 
+                "🗓️ Orderan H-2 (Lusa)",
+                "📅 Orderan H-3 (3 Hari Kedepan)"
+            ])
             
             with tab1:
                 st.write("### Master Data (Seluruh Orderan di Google Sheets)")
@@ -146,5 +155,13 @@ if sheet is not None:
                     st.dataframe(df_h2)
                 else:
                     st.info("Aman! Tidak ada pesanan untuk lusa.")
+
+            with tab4:
+                st.write(f"### 📦 List Orderan Masuk untuk 3 Hari ke Depan ({hari_ke3_str})")
+                if not df_h3.empty:
+                    st.dataframe(df_h3)
+                else:
+                    st.info("Aman! Belum ada pesanan masuk untuk 3 hari ke depan.")
+                    
     except Exception as d_error:
         st.info(f"💡 Dashboard Menunggu data: {d_error}")
