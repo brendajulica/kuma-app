@@ -88,14 +88,13 @@ st.write("---")
 if st.button("Simpan Orderan", type="primary", use_container_width=True):
     if nama_pelanggan:
         if sheet is not None:
-            # 🛠️ PERBAIKAN LOGIKA: Memisahkan Tanggal dan Jam secara real-time WIB
             waktu_sekarang = pd.Timestamp.now(tz="Asia/Jakarta")
-            tanggal_hari_ini = waktu_sekarang.strftime("%Y-%m-%d") # Kolom 1
-            jam_sekarang = waktu_sekarang.strftime("%H:%M")        # Kolom 2
+            tanggal_hari_ini = waktu_sekarang.strftime("%Y-%m-%d")
+            jam_sekarang = waktu_sekarang.strftime("%H:%M")
             
             new_row = [
-                tanggal_hari_ini,  # Masuk ke Kolom 1
-                jam_sekarang,      # Masuk ke Kolom 2
+                tanggal_hari_ini,
+                jam_sekarang,
                 nama_pelanggan,
                 produk,
                 tema_warna if tema_warna else "-",
@@ -208,22 +207,33 @@ if sheet is not None:
                 else:
                     st.info("Aman! Belum ada pesanan masuk untuk tepat seminggu ke depan.")
 
+            # ==============================================================================
+            # 🔥 PERUBAHAN UTAMA: TAB SUNTIKAN FORMAT NAMA (PRODUK)
+            # ==============================================================================
             with tab6:
                 st.write("### 🛠️ Tandai Pesanan yang Sudah Diambil / Dikirim")
                 df_pilihan = df_all[df_all["Status"] == "Belum Selesai"]
                 
                 if not df_pilihan.empty:
-                    pilihan_nama = df_pilihan["Nama Pelanggan"].tolist()
-                    orderan_terpilih = st.selectbox("Pilih Nama Pelanggan yang Sudah Selesai:", pilihan_nama)
+                    # 1. Membuat teks kombinasi "Nama Pelanggan (Jenis Produk)" untuk ditampilkan di dropdown
+                    df_pilihan["Tampilan_Dropdown"] = df_pilihan["Nama Pelanggan"].astype(str) + " (" + df_pilihan["Pilih Jenis Produk"].astype(str) + ")"
+                    pilihan_tampilan = df_pilihan["Tampilan_Dropdown"].tolist()
                     
-                    st.warning(f"⚠️ **PENTING:** Pastikan Anda benar-benar ingin menyelesaikan pesanan atas nama: **{orderan_terpilih}**.")
-                    konfirmasi_benar = st.checkbox(f"Ya, saya sudah memeriksa dan nama **{orderan_terpilih}** sudah benar.")
+                    # 2. Tampilkan pilihan kombinasi tersebut ke karyawan
+                    pilihan_terpilih = st.selectbox("Pilih Nama Pelanggan yang Sudah Selesai:", pilihan_tampilan)
+                    
+                    # 3. Cari kembali data asli "Nama Pelanggan" berdasarkan teks dropdown yang dipilih
+                    nama_asli_pelanggan = df_pilihan[df_pilihan["Tampilan_Dropdown"] == pilihan_terpilih]["Nama Pelanggan"].values[0]
+                    produk_terpilih = df_pilihan[df_pilihan["Tampilan_Dropdown"] == pilihan_terpilih]["Pilih Jenis Produk"].values[0]
+                    
+                    st.warning(f"⚠️ **PENTING:** Pastikan Anda benar-benar ingin menyelesaikan pesanan atas nama: **{nama_asli_pelanggan}** dengan produk **[{produk_terpilih}]**.")
+                    konfirmasi_benar = st.checkbox(f"Ya, saya sudah memeriksa dan data orderan tersebut sudah benar.")
                     
                     if st.button("Ubah Status Jadi SELESAI ✅", use_container_width=True, disabled=not konfirmasi_benar):
-                        indeks_baris = df_all[df_all["Nama Pelanggan"] == orderan_terpilih].index[0] + 2
-                        # Karena kita menambah 1 kolom baru, posisi kolom status otomatis bergeser dari 14 ke 15
+                        # Cari baris di Google Sheets berdasarkan kombinasi nama pelanggan agar akurat
+                        indeks_baris = df_all[df_all["Nama Pelanggan"] == nama_asli_pelanggan].index[0] + 2
                         sheet.update_cell(indeks_baris, 15, "Selesai")
-                        st.success(f"👍 Berhasil! Status orderan atas nama {orderan_terpilih} sekarang sudah SELESAI!")
+                        st.success(f"👍 Berhasil! Status orderan atas nama {nama_asli_pelanggan} sekarang sudah SELESAI!")
                         st.rerun()
                 else:
                     st.info("Semua orderan toko saat ini sudah selesai diproses! Mantap! 🎉")
