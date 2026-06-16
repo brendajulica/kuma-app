@@ -22,20 +22,20 @@ def dapatkan_koneksi_sheets():
 
 sheet = dapatkan_koneksi_sheets()
 
+# Load dan Pembersihan Data
 df_histori = pd.DataFrame()
 if sheet:
     try:
         data = sheet.get_all_records()
         df_histori = pd.DataFrame(data)
-        # Pembersihan Data (Anti-Eror)
+        # Pembersihan data
         df_histori = df_histori.fillna("-")
         df_histori["Nama Pelanggan"] = df_histori["Nama Pelanggan"].astype(str)
         df_histori["Pilih Jenis Produk"] = df_histori["Pilih Jenis Produk"].astype(str)
         df_histori["No HP Penerima"] = df_histori["No HP Penerima"].astype(str).str.strip()
-        # Konversi numerik
         df_histori["Total Bayar Seharusnya"] = pd.to_numeric(df_histori["Total Bayar Seharusnya"], errors='coerce').fillna(0)
         df_histori["DP Awal"] = pd.to_numeric(df_histori["DP Awal"], errors='coerce').fillna(0)
-        # Konversi Tanggal Aman
+        # Konversi tanggal dengan paksa agar tidak eror
         df_histori["Tanggal Input"] = pd.to_datetime(df_histori["Tanggal Input"], errors='coerce')
     except:
         pass
@@ -51,6 +51,7 @@ with tab_ops:
         with col1:
             input_hp = st.text_input("No HP Pelanggan:")
             input_hp_clean = str(input_hp).strip()
+            # Auto-fill logic
             data_lama = df_histori[df_histori["No HP Penerima"] == input_hp_clean].iloc[-1] if not df_histori.empty and input_hp_clean in df_histori["No HP Penerima"].values else None
             nama = st.text_input("Nama Pelanggan:", value=data_lama["Nama Pelanggan"] if data_lama is not None and data_lama["Nama Pelanggan"] != "-" else "")
         with col2:
@@ -68,22 +69,28 @@ with tab_ops:
         if st.button("Simpan Orderan", type="primary", use_container_width=True):
             if sheet and nama and input_hp:
                 now = datetime.now()
-                sheet.append_row([now.strftime("%Y-%m-%d"), now.strftime("%H:%M"), nama, produk, tema, nama, input_hp, metode, alamat, "-", tgl_ambil.strftime("%Y-%m-%d"), total_bayar, dp, (total_bayar - dp), "Belum Selesai", nama_admin])
+                # Append row sesuai urutan 16 kolom
+                sheet.append_row([
+                    now.strftime("%Y-%m-%d"), now.strftime("%H:%M"), nama, produk, tema, nama, 
+                    input_hp, metode, alamat, "-", tgl_ambil.strftime("%Y-%m-%d"), 
+                    total_bayar, dp, (total_bayar - dp), "Belum Selesai", nama_admin
+                ])
                 st.success("Data berhasil disimpan!")
                 st.rerun()
 
     st.subheader("🏛️ Dashboard Live")
     if not df_histori.empty:
         df_aktif = df_histori[df_histori["Status"] == "Belum Selesai"].copy()
-        tabs_sub = st.tabs(["🚨 Semua Aktif", "✅ Tandai Selesai"])
-        with tabs_sub[0]: st.dataframe(df_aktif, use_container_width=True)
-        with tabs_sub[1]:
-            pilihan = st.selectbox("Pilih pesanan yang selesai:", df_aktif["Nama Pelanggan"] + " - " + df_aktif["Pilih Jenis Produk"])
-            if st.checkbox("Saya yakin pesanan ini sudah selesai."):
-                if st.button("Ubah Status"):
-                    mask = (df_histori["Nama Pelanggan"] == pilihan.split(" - ")[0]) & (df_histori["Pilih Jenis Produk"] == pilihan.split(" - ")[1]) & (df_histori["Status"] == "Belum Selesai")
-                    sheet.update_cell(df_histori[mask].index[0] + 2, 15, "Selesai")
-                    st.rerun()
+        st.dataframe(df_aktif, use_container_width=True)
+        
+        st.write("---")
+        st.subheader("✅ Tandai Pesanan Selesai")
+        pilihan = st.selectbox("Pilih pesanan yang selesai:", df_aktif["Nama Pelanggan"] + " (" + df_aktif["Pilih Jenis Produk"] + ")")
+        if st.checkbox("Saya yakin pesanan ini selesai"):
+            if st.button("Ubah Status ke Selesai"):
+                mask = (df_histori["Nama Pelanggan"] == pilihan.split(" (")[0]) & (df_histori["Pilih Jenis Produk"] == pilihan.split(" (")[1].replace(")", "")) & (df_histori["Status"] == "Belum Selesai")
+                sheet.update_cell(df_histori[mask].index[0] + 2, 15, "Selesai")
+                st.rerun()
 
 with tab_laporan:
     st.subheader("📊 Analisis Penjualan Bulan Ini")
