@@ -67,4 +67,4 @@ with tab_ops:
             sheet.append_row([
                 now.strftime("%Y-%m-%d"), now.strftime("%H:%M"), nama, produk, tema, nama, 
                 input_hp, metode, alamat, catatan, tgl_ambil.strftime("%Y-%m-%d"), 
-                total, dp, (total - dp), "Belum Selesai
+                total, dp, (total - dp), "Belum Selesai"
