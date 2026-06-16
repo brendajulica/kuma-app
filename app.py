@@ -60,15 +60,11 @@ st.write("")
 with st.container(border=True):
     st.markdown("#### 🚚 Informasi Pengiriman & Catatan")
     
-    # 🔴 TOOLS BARU: Checkbox untuk mendeteksi apakah penerima sama dengan pemesan
     sama_dengan_pemesan = st.checkbox("Nama Penerima sama dengan Nama Pelanggan", key=f"cek_{kunci_bantu}")
     
-    # Logika pengisian otomatis
     if sama_dengan_pemesan:
-        # Jika dicentang, isi otomatis dengan nama_pelanggan dan kunci inputan (disabled=True)
         nama_penerima = st.text_input("Nama Penerima:", value=nama_pelanggan, disabled=True, key=f"penerima_{kunci_bantu}")
     else:
-        # Jika tidak dicentang, biarkan kosong agar bisa diketik manual
         nama_penerima = st.text_input("Nama Penerima:", key=f"penerima_{kunci_bantu}")
         
     no_hp_penerima = st.text_input("No HP Penerima:", key=f"hp_{kunci_bantu}")
@@ -136,4 +132,35 @@ if st.button("Simpan Orderan", type="primary", use_container_width=True):
 # ==============================================================================
 if sheet is not None:
     try:
-        records = sheet.get_all_
+        records = sheet.get_all_records()
+        if records:
+            df_all = pd.DataFrame(records)
+            
+            st.write("---")
+            st.write("## 🏛️ DASHBOARD LIVE ORDERAN KUMA GIFT")
+            
+            # Tombol Download Excel
+            buffer = io.BytesIO()
+            with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                df_all.to_excel(writer, index=False, sheet_name='Semua Orderan')
+            buku_excel = buffer.getvalue()
+            
+            st.download_button(
+                label="📥 Download Seluruh Data ke Excel (.xlsx)",
+                data=buku_excel,
+                file_name=f"Rekap_Orderan_KumaGift_{datetime.today().strftime('%Y-%m-%d')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
+            st.write("") 
+            
+            hari_ini_wib = pd.Timestamp.now(tz="Asia/Jakarta")
+            besok_str = (hari_ini_wib + timedelta(days=1)).strftime("%Y-%m-%d")
+            lusa_str = (hari_ini_wib + timedelta(days=2)).strftime("%Y-%m-%d")
+            hari_ke3_str = (hari_ini_wib + timedelta(days=3)).strftime("%Y-%m-%d")
+            hari_ke7_str = (hari_ini_wib + timedelta(days=7)).strftime("%Y-%m-%d")
+            
+            if "Status" in df_all.columns and "Tanggal Pengambilan" in df_all.columns:
+                df_aktif = df_all[df_all["Status"] == "Belum Selesai"]
+                df_h1 = df_aktif[df_aktif["Tanggal Pengambilan"] == besok_str]
+                df
