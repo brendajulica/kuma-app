@@ -1,4 +1,27 @@
-import streamlit as st
+# ==============================================================================
+# 1. KONEKSI GOOGLE SHEETS VIA GSPREAD (VERSI CLOUD SECRETS - LACAK EROR)
+# ==============================================================================
+@st.cache_resource
+def dapatkan_koneksi_sheets():
+    try:
+        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+        
+        # Membaca info kredensial langsung dari kotak hitam Secrets [gspread]
+        info_kunci = st.secrets["gspread"]["creds"]
+        
+        import json
+        info_dict = json.loads(info_kunci)
+        
+        creds = Credentials.from_service_account_info(info_dict, scopes=scope)
+        client = gspread.authorize(creds)
+        
+        nama_file_sheets = "Database Kuma Gift" 
+        return client.open(nama_file_sheets).sheet1
+    except Exception as e:
+        # Menampilkan pesan eror asli dari sistem Google/Streamlit di layar aplikasi
+        st.error(f"Eror Sistem yang Terjadi: {e}")
+        return None
+        import streamlit as st
 import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
