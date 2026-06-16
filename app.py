@@ -13,20 +13,17 @@ st.title("🪻 Kuma Gift Integrated Management System")
 # 1. KONEKSI DATA (Menggunakan cache_data agar lebih mudah refresh)
 @st.cache_data(ttl=10) # Data akan di-refresh setiap 10 detik
 def load_data():
-    # HANYA CACHE DATANYA, BUKAN OBJEK SHEET-NYA
-@st.cache_data(ttl=60) 
-def get_cached_df():
-    # Fungsi ini hanya akan dipanggil jika cache kosong
-    return pd.DataFrame() 
+    try:
+        if "gspread" in st.secrets:
+            creds = Credentials.from_service_account_info(json.loads(st.secrets["gspread"]["creds"]), scopes=["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"])
+            sheet = gspread.authorize(creds).open("Database Kuma Gift").sheet1
+            data = sheet.get_all_records()
+            return pd.DataFrame(data), sheet
+    except:
+        return pd.DataFrame(), None
+    return pd.DataFrame(), None
 
-# FUNGSI KONEKSI BARU (Selalu buka koneksi fresh)
-def get_fresh_sheet():
-    creds = Credentials.from_service_account_info(
-        json.loads(st.secrets["gspread"]["creds"]), 
-        scopes=["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-    )
-    client = gspread.authorize(creds)
-    return client.open("Database Kuma Gift").sheet1
+df_histori, sheet = load_data()
 
 # Bersihkan Data
 if not df_histori.empty:
@@ -58,34 +55,20 @@ with tab_ops:
         catatan = st.text_area("Catatan Khusus:")
         tgl_ambil = st.date_input("Tanggal Pengambilan:", value=datetime.now() + timedelta(days=1))
         
-if st.button("Simpan Orderan", type="primary"):
-    try:
-        # Panggil koneksi fresh di sini
-        current_sheet = get_fresh_sheet()
-        
-        waktu_klik = datetime.now()
-        data_baru = [
-            waktu_klik.strftime("%Y-%m-%d"), 
-            waktu_klik.strftime("%H:%M:%S"), 
-            nama, produk, tema, nama, input_hp, metode, alamat, catatan, 
-            tgl_ambil.strftime("%Y-%m-%d"), total, dp, (total - dp), "Belum Selesai", nama_admin
-        ]
-        
-        current_sheet.append_row(data_baru)
-        st.success("Data berhasil disimpan!")
-        st.rerun()
-    except Exception as e:
-        st.error(f"Gagal menyimpan: {e}")
+        if st.button("Simpan Orderan", type="primary"):
+            data_baru = [datetime.now().strftime("%Y-%m-%d"), datetime.now().strftime("%H:%M"), nama, produk, tema, nama, input_hp, metode, alamat, catatan, tgl_ambil.strftime("%Y-%m-%d"), total, dp, (total - dp), "Belum Selesai", nama_admin]
+            sheet.append_row(data_baru)
+            st.success("Data tersimpan!")
+            st.rerun()
 
    # ==============================================================================
 # 3. 🏛️ DASHBOARD PEMILAH LIVE (H-1, H-2, H-3, & H-7 REAL-TIME)
 # ==============================================================================
 if sheet is not None:
     try:
-    current_sheet = get_fresh_sheet() # Ambil koneksi baru
-    records = current_sheet.get_all_records() # Ambil data fresh
-    if records:
-        df_all = pd.DataFrame(records)
+        records = sheet.get_all_records()
+        if records:
+            df_all = pd.DataFrame(records)
             
             st.write("---")
             st.write("## 🏛️ DASHBOARD LIVE ORDERAN KUMA GIFT")
@@ -162,9 +145,6 @@ if sheet is not None:
                     st.dataframe(df_h7)
                 else:
                     st.info("Aman! Belum ada pesanan masuk untuk tepat seminggu ke depan.")
-
-        except Exception as e:
-    st.error("Tidak bisa memuat dashboard. Periksa koneksi ke Google Sheets.")
 
           # ==============================================================================
             # 🔥 PERUBAHAN UTAMA: TAB SUNTIKAN FORMAT NAMA (PRODUK)
