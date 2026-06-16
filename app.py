@@ -146,47 +146,40 @@ if sheet is not None:
                 else:
                     st.info("Aman! Belum ada pesanan masuk untuk tepat seminggu ke depan.")
 
+          # ==============================================================================
+            # 🔥 PERUBAHAN UTAMA: TAB SUNTIKAN FORMAT NAMA (PRODUK)
+            # ==============================================================================
             with tab6:
-               st.write("### 🛠️ Tandai Pesanan yang Sudah Diambil / Dikirim")
-                    if not df_aktif.empty:
-                        # --- PERBAIKAN DI SINI ---
-                        # Menggabungkan Nama Pelanggan, Jenis Produk, dan Tanggal Pengambilan agar informasi dropdown lengkap dan sangat jelas
-                        df_aktif["Dropdown_Label"] = (
-                            df_aktif["Nama Pelanggan"].astype(str) + 
-                            " -> [" + df_aktif["Pilih Jenis Produk"].astype(str) + "] " +
-                            " (Ambil: " + df_aktif["Tanggal Pengambilan"].dt.strftime('%d-%m-%Y') + ")"
-                        )
-                        pilihan_label = df_aktif["Dropdown_Label"].tolist()
-                        
-                        orderan_terpilih = st.selectbox("Pilih Orderan Pelanggan yang Sudah Selesai:", pilihan_label)
-                        
-                        st.warning(f"⚠️ **PENTING:** Pastikan Anda benar-benar ingin menyelesaikan pesanan: **{orderan_terpilih}**.")
-                        konfirmasi_benar = st.checkbox("Ya, saya sudah memeriksa dan data ini sudah benar.")
-                        
-                        if st.button("Ubah Status Jadi SELESAI ✅", use_container_width=True, disabled=not konfirmasi_benar):
-                            # Membuat pencocokan label yang sama pada data utama
-                            df_histori["Dropdown_Label_Master"] = (
-                                df_histori["Nama Pelanggan"].astype(str) + 
-                                " -> [" + df_histori["Pilih Jenis Produk"].astype(str) + "] " +
-                                " (Ambil: " + df_histori["Tanggal Pengambilan"].dt.strftime('%d-%m-%Y') + ")"
-                            )
-                            indeks_baris = df_histori[df_histori["Dropdown_Label_Master"] == orderan_terpilih].index[0] + 2
-                            
-                            # Update status ke kolom ke-15 di Google Sheets
-                            sheet.update_cell(indeks_baris, 15, "Selesai")
-                            st.success(f"👍 Berhasil! Status orderan {orderan_terpilih} sekarang sudah SELESAI!")
-                            st.cache_data.clear()
-                            st.rerun()
-                    else:
-                        st.info("Semua orderan toko saat ini sudah selesai diproses! Mantap! 🎉")
-            else:
-                st.warning("Menunggu data masuk dari Google Sheets... Pastikan lembar kerja Anda tidak kosong.")
-                        
-        except Exception as d_error:
-            st.error(f"🚨 Terjadi gangguan sistem pembacaan dashboard: {d_error}")
-    else:
-        st.error("Koneksi aplikasi ke Google Sheets terputus.")
-
+                st.write("### 🛠️ Tandai Pesanan yang Sudah Diambil / Dikirim")
+                df_pilihan = df_all[df_all["Status"] == "Belum Selesai"]
+                
+                if not df_pilihan.empty:
+                    # 1. Membuat teks kombinasi "Nama Pelanggan (Jenis Produk)" untuk ditampilkan di dropdown
+                    df_pilihan["Tampilan_Dropdown"] = df_pilihan["Nama Pelanggan"].astype(str) + " (" + df_pilihan["Pilih Jenis Produk"].astype(str) + ")"
+                    pilihan_tampilan = df_pilihan["Tampilan_Dropdown"].tolist()
+                    
+                    # 2. Tampilkan pilihan kombinasi tersebut ke karyawan
+                    pilihan_terpilih = st.selectbox("Pilih Nama Pelanggan yang Sudah Selesai:", pilihan_tampilan)
+                    
+                    # 3. Cari kembali data asli "Nama Pelanggan" berdasarkan teks dropdown yang dipilih
+                    nama_asli_pelanggan = df_pilihan[df_pilihan["Tampilan_Dropdown"] == pilihan_terpilih]["Nama Pelanggan"].values[0]
+                    produk_terpilih = df_pilihan[df_pilihan["Tampilan_Dropdown"] == pilihan_terpilih]["Pilih Jenis Produk"].values[0]
+                    
+                    st.warning(f"⚠️ **PENTING:** Pastikan Anda benar-benar ingin menyelesaikan pesanan atas nama: **{nama_asli_pelanggan}** dengan produk **[{produk_terpilih}]**.")
+                    konfirmasi_benar = st.checkbox(f"Ya, saya sudah memeriksa dan data orderan tersebut sudah benar.")
+                    
+                    if st.button("Ubah Status Jadi SELESAI ✅", use_container_width=True, disabled=not konfirmasi_benar):
+                        # Cari baris di Google Sheets berdasarkan kombinasi nama pelanggan agar akurat
+                        indeks_baris = df_all[df_all["Nama Pelanggan"] == nama_asli_pelanggan].index[0] + 2
+                        sheet.update_cell(indeks_baris, 15, "Selesai")
+                        st.success(f"👍 Berhasil! Status orderan atas nama {nama_asli_pelanggan} sekarang sudah SELESAI!")
+                        st.rerun()
+                else:
+                    st.info("Semua orderan toko saat ini sudah selesai diproses! Mantap! 🎉")
+                    
+    except Exception as d_error:
+        st.info(f"💡 Dashboard Menunggu data: {d_error}")
+        
 # 4. TAB LAPORAN BULANAN
 with tab_laporan:
     st.subheader("📊 Analisis Penjualan")
