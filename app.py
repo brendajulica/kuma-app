@@ -22,21 +22,18 @@ def dapatkan_koneksi_sheets():
 
 sheet = dapatkan_koneksi_sheets()
 
-# Load dan Pembersihan Data
+# Load Data dengan pembersihan
 df_histori = pd.DataFrame()
 if sheet:
     try:
         data = sheet.get_all_records()
         df_histori = pd.DataFrame(data)
-        # Pembersihan data
         df_histori = df_histori.fillna("-")
-        df_histori["Nama Pelanggan"] = df_histori["Nama Pelanggan"].astype(str)
-        df_histori["Pilih Jenis Produk"] = df_histori["Pilih Jenis Produk"].astype(str)
-        df_histori["No HP Penerima"] = df_histori["No HP Penerima"].astype(str).str.strip()
+        df_histori["Tanggal Input"] = pd.to_datetime(df_histori["Tanggal Input"], errors='coerce')
+        # Konversi Tanggal Pengambilan agar bisa difilter
+        df_histori["Tanggal Pengambilan"] = pd.to_datetime(df_histori["Tanggal Pengambilan"], errors='coerce')
         df_histori["Total Bayar Seharusnya"] = pd.to_numeric(df_histori["Total Bayar Seharusnya"], errors='coerce').fillna(0)
         df_histori["DP Awal"] = pd.to_numeric(df_histori["DP Awal"], errors='coerce').fillna(0)
-        # Konversi tanggal dengan paksa agar tidak eror
-        df_histori["Tanggal Input"] = pd.to_datetime(df_histori["Tanggal Input"], errors='coerce')
     except:
         pass
 
@@ -44,73 +41,51 @@ if sheet:
 tab_ops, tab_laporan = st.tabs(["📋 Operasional Pesanan", "📊 Laporan Bulanan"])
 
 with tab_ops:
-    st.subheader("📝 Form Input Pesanan")
-    with st.container(border=True):
-        nama_admin = st.selectbox("Pilih Nama Admin:", ["Admin 1", "Admin 2", "Admin 3"])
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            input_hp = st.text_input("No HP Pelanggan:")
-            input_hp_clean = str(input_hp).strip()
-            # Auto-fill logic
-            data_lama = df_histori[df_histori["No HP Penerima"] == input_hp_clean].iloc[-1] if not df_histori.empty and input_hp_clean in df_histori["No HP Penerima"].values else None
-            nama = st.text_input("Nama Pelanggan:", value=data_lama["Nama Pelanggan"] if data_lama is not None and data_lama["Nama Pelanggan"] != "-" else "")
-        with col2:
-            produk = st.selectbox("Pilih Jenis Produk:", ["Buket A", "Buket B", "Buket C", "Buket F", "Buket S", "Acc", "Tas", "Mahar"])
-            metode = st.selectbox("Metode Penyerahan:", ["Antar/Kirim", "Ambil di Toko"])
-        with col3:
-            total_bayar = st.number_input("Total Bayar (Rp):", min_value=0)
-            dp = st.number_input("DP Awal (Rp):", min_value=0)
-            st.write(f"**Sisa Kekurangan: Rp {total_bayar - dp:,}**")
+    # FORM INPUT (Singkat)
+    with st.expander("📝 Form Input Pesanan Baru"):
+        nama_admin = st.selectbox("Pilih Admin:", ["Admin 1", "Admin 2", "Admin 3"])
+        c1, c2 = st.columns(2)
+        with c1:
+            input_hp = st.text_input("No HP:")
+            nama = st.text_input("Nama Pelanggan:")
+        with c2:
+            produk = st.selectbox("Produk:", ["Buket A", "Buket B", "Buket C", "Buket F", "Buket S", "Acc", "Tas", "Mahar"])
+            tgl_ambil = st.date_input("Tanggal Pengambilan:", value=datetime.now() + timedelta(days=1))
         
-        tema = st.text_input("Tema Warna:", value=data_lama["Tema Warna Buket"] if data_lama is not None and data_lama["Tema Warna Buket"] != "-" else "")
-        alamat = st.text_area("Alamat Lengkap:")
-        tgl_ambil = st.date_input("Tanggal Pengambilan:", value=datetime.now() + timedelta(days=1))
-        
-        if st.button("Simpan Orderan", type="primary", use_container_width=True):
-            if sheet and nama and input_hp:
-                now = datetime.now()
-                # Append row sesuai urutan 16 kolom
-                sheet.append_row([
-                    now.strftime("%Y-%m-%d"), now.strftime("%H:%M"), nama, produk, tema, nama, 
-                    input_hp, metode, alamat, "-", tgl_ambil.strftime("%Y-%m-%d"), 
-                    total_bayar, dp, (total_bayar - dp), "Belum Selesai", nama_admin
-                ])
-                st.success("Data berhasil disimpan!")
-                st.rerun()
+        if st.button("Simpan Orderan"):
+            now = datetime.now()
+            sheet.append_row([now.strftime("%Y-%m-%d"), now.strftime("%H:%M"), nama, produk, "-", nama, input_hp, "Antar", "-", "-", tgl_ambil.strftime("%Y-%m-%d"), 0, 0, 0, "Belum Selesai", nama_admin])
+            st.rerun()
 
+    # DASHBOARD DENGAN FILTER H-X
     st.subheader("🏛️ Dashboard Live")
     if not df_histori.empty:
         df_aktif = df_histori[df_histori["Status"] == "Belum Selesai"].copy()
-        st.dataframe(df_aktif, use_container_width=True)
         
-        st.write("---")
-        st.subheader("✅ Tandai Pesanan Selesai")
-        pilihan = st.selectbox("Pilih pesanan yang selesai:", df_aktif["Nama Pelanggan"] + " (" + df_aktif["Pilih Jenis Produk"] + ")")
-        if st.checkbox("Saya yakin pesanan ini selesai"):
-            if st.button("Ubah Status ke Selesai"):
-                mask = (df_histori["Nama Pelanggan"] == pilihan.split(" (")[0]) & (df_histori["Pilih Jenis Produk"] == pilihan.split(" (")[1].replace(")", "")) & (df_histori["Status"] == "Belum Selesai")
-                sheet.update_cell(df_histori[mask].index[0] + 2, 15, "Selesai")
-                st.rerun()
+        # Logika Filter Tanggal
+        today = datetime.now().date()
+        tabs = st.tabs(["🚨 Semua", "⏳ H-1", "🗓️ H-2", "📅 H-3", "📆 H-7", "✅ Selesai"])
+        
+        def filter_tgl(df, days):
+            target = today + timedelta(days=days)
+            return df[df["Tanggal Pengambilan"].dt.date == target]
+
+        with tabs[0]: st.dataframe(df_aktif, use_container_width=True)
+        with tabs[1]: st.dataframe(filter_tgl(df_aktif, 1), use_container_width=True)
+        with tabs[2]: st.dataframe(filter_tgl(df_aktif, 2), use_container_width=True)
+        with tabs[3]: st.dataframe(filter_tgl(df_aktif, 3), use_container_width=True)
+        with tabs[4]: st.dataframe(filter_tgl(df_aktif, 7), use_container_width=True)
+        with tabs[5]: st.dataframe(df_histori[df_histori["Status"] == "Selesai"], use_container_width=True)
 
 with tab_laporan:
-    st.subheader("📊 Analisis Penjualan Bulan Ini")
+    st.subheader("📊 Analisis Penjualan")
     if not df_histori.empty:
-        # Filter aman
         df_valid = df_histori.dropna(subset=["Tanggal Input"]).copy()
         now = datetime.now()
-        df_bulan_ini = df_valid[(df_valid["Tanggal Input"].dt.month == now.month) & (df_valid["Tanggal Input"].dt.year == now.year)]
+        df_bulan = df_valid[(df_valid["Tanggal Input"].dt.month == now.month)]
         
-        if not df_bulan_ini.empty:
-            c1, c2, c3 = st.columns(3)
-            c1.metric("Total Order", len(df_bulan_ini))
-            c2.metric("Total Omset", f"Rp {df_bulan_ini['Total Bayar Seharusnya'].sum():,.0f}")
-            c3.metric("Total DP Masuk", f"Rp {df_bulan_ini['DP Awal'].sum():,.0f}")
-            
-            st.write("### 📈 Grafik Produk Terlaris")
-            st.bar_chart(df_bulan_ini["Pilih Jenis Produk"].value_counts())
-            
-            st.write("### 👥 Performa Admin")
-            if "Nama Admin" in df_bulan_ini.columns:
-                st.table(df_bulan_ini["Nama Admin"].value_counts().reset_index().rename(columns={"Nama Admin": "Admin", "count": "Jumlah Order"}))
-        else:
-            st.info("Belum ada data transaksi yang valid untuk bulan ini.")
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Total Order", len(df_bulan))
+        c2.metric("Omset", f"Rp {df_bulan['Total Bayar Seharusnya'].sum():,.0f}")
+        c3.metric("DP Masuk", f"Rp {df_bulan['DP Awal'].sum():,.0f}")
+        st.bar_chart(df_bulan["Pilih Jenis Produk"].value_counts())
