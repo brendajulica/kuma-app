@@ -55,11 +55,33 @@ with tab_ops:
         catatan = st.text_area("Catatan Khusus:")
         tgl_ambil = st.date_input("Tanggal Pengambilan:", value=datetime.now() + timedelta(days=1))
         
-        if st.button("Simpan Orderan", type="primary"):
-            data_baru = [datetime.now().strftime("%Y-%m-%d"), datetime.now().strftime("%H:%M"), nama, produk, tema, nama, input_hp, metode, alamat, catatan, tgl_ambil.strftime("%Y-%m-%d"), total, dp, (total - dp), "Belum Selesai", nama_admin]
-            sheet.append_row(data_baru)
-            st.success("Data tersimpan!")
-            st.rerun()
+        if if st.button("Simpan Orderan", type="primary"):
+            if sheet is not None:
+                # MENGAMBIL WAKTU TEPAT SAAT TOMBOL DIKLIK
+                waktu_sekarang = datetime.now() 
+                
+                data_baru = [
+                    waktu_sekarang.strftime("%Y-%m-%d"), # Tanggal Input
+                    waktu_sekarang.strftime("%H:%M:%S"), # Waktu Input (Ditambah detik agar presisi)
+                    nama, 
+                    produk, 
+                    tema, 
+                    nama, 
+                    input_hp, 
+                    metode, 
+                    alamat, 
+                    catatan, 
+                    tgl_ambil.strftime("%Y-%m-%d"), 
+                    total, 
+                    dp, 
+                    (total - dp), 
+                    "Belum Selesai", 
+                    nama_admin
+                ]
+                sheet.append_row(data_baru)
+                st.success("Data berhasil tersimpan dengan waktu real-time!")
+                st.cache_data.clear() # Wajib: hapus cache agar dashboard langsung update
+                st.rerun()
 
    # ==============================================================================
 # 3. 🏛️ DASHBOARD PEMILAH LIVE (H-1, H-2, H-3, & H-7 REAL-TIME)
