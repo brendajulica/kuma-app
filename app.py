@@ -33,40 +33,51 @@ def dapatkan_koneksi_sheets():
 sheet = dapatkan_koneksi_sheets()
 
 # ==============================================================================
-# 2. FORM INPUTAN UTAMA
+# SIKLUS PEMBERSIH FORM (SESSION STATE RESET)
+# ==============================================================================
+# Jika kunci reset belum ada di sistem memory, buat baru
+if "input_counter" not in st.session_state:
+    st.session_state["input_counter"] = 0
+
+# Kunci unik untuk memaksa kotak input mendeteksi perubahan data
+kunci_bantu = f"v1_{st.session_state['input_counter']}"
+
+# ==============================================================================
+# 2. FORM INPUTAN UTAMA (SUDAH DIBERI KUNCI RESET)
 # ==============================================================================
 st.write("### 📝 Formulir Input Pesanan")
 
 with st.container(border=True):
     st.markdown("#### 🌸 Detail Pesanan Buket")
-    nama_pelanggan = st.text_input("Nama Pelanggan / Pemesan:")
+    nama_pelanggan = st.text_input("Nama Pelanggan / Pemesan:", key=f"nama_{kunci_bantu}")
     produk = st.selectbox(
         "Pilih Jenis Produk:", 
-        ["Buket A = Artifisial", "Buket B = Boneka", "Buket C = Custom (Snack, Uang, dll)", "Buket F = Fresh (Bunga)", "Buket S = Satin", "Acc", "Tas", "Mahar"]
+        ["Buket A = Artifisial", "Buket B = Boneka", "Buket C = Custom (Snack, Uang, dll)", "Buket F = Fresh (Bunga)", "Buket S = Satin", "Acc", "Tas", "Mahar"],
+        key=f"prod_{kunci_bantu}"
     )
-    tema_warna = st.text_input("Tema Warna Buket:")
+    tema_warna = st.text_input("Tema Warna Buket:", key=f"warna_{kunci_bantu}")
 
 st.write("") 
 
 with st.container(border=True):
     st.markdown("#### 🚚 Informasi Pengiriman & Catatan")
-    nama_penerima = st.text_input("Nama Penerima:")
-    no_hp_penerima = st.text_input("No HP Penerima:")
-    metode = st.radio("Metode Penyerahan Buket:", ["Ambil Sendiri", "Antar / Kirim"])
+    nama_penerima = st.text_input("Nama Penerima:", key=f"penerima_{kunci_bantu}")
+    no_hp_penerima = st.text_input("No HP Penerima:", key=f"hp_{kunci_bantu}")
+    metode = st.radio("Metode Penyerahan Buket:", ["Ambil Sendiri", "Antar / Kirim"], key=f"metode_{kunci_bantu}")
 
     alamat = "-"
     if metode == "Antar / Kirim":
-        alamat = st.text_area("Alamat Lengkap Pengiriman:")
+        alamat = st.text_area("Alamat Lengkap Pengiriman:", key=f"alamat_{kunci_bantu}")
 
-    catatan_khusus = st.text_area("Catatan Khusus (Isi Kartu Ucapan / Request Pita / Jam Kirim):", value="-")
-    tanggal_ambil = st.date_input("Tanggal Pengambilan / Pengiriman Orderan:", value=datetime.today() + timedelta(days=1))
+    catatan_khusus = st.text_area("Catatan Khusus (Isi Kartu Ucapan / Request Pita / Jam Kirim):", value="-", key=f"catat_{kunci_bantu}")
+    tanggal_ambil = st.date_input("Tanggal Pengambilan / Pengiriman Orderan:", value=datetime.today() + timedelta(days=1), key=f"tgl_{kunci_bantu}")
 
 st.write("") 
 
 with st.container(border=True):
     st.markdown("#### 💰 Rincian Pembayaran (Input Angka Saja)")
-    total_bayar = st.number_input("Total Bayar Seharusnya (Rp):", min_value=0, step=1000, value=0)
-    dp_awal = st.number_input("DP Awal (Rp):", min_value=0, step=1000, value=0)
+    total_bayar = st.number_input("Total Bayar Seharusnya (Rp):", min_value=0, step=1000, value=0, key=f"total_{kunci_bantu}")
+    dp_awal = st.number_input("DP Awal (Rp):", min_value=0, step=1000, value=0, key=f"dp_{kunci_bantu}")
     kekurangan = total_bayar - dp_awal
 
     if kekurangan > 0:
@@ -98,7 +109,12 @@ if st.button("Simpan Orderan", type="primary", use_container_width=True):
                 "Belum Selesai"
             ]
             sheet.append_row(new_row)
-            st.success(f"🎉 Sukses! Orderan atas nama {nama_pelanggan} masuk ke Google Sheets!")
+            
+            # PROSES MEMBERSIHKAN FORM: Mengubah angka counter agar form mendeteksi sebagai halaman kosong baru
+            st.session_state["input_counter"] += 1
+            
+            st.success(f"🎉 Sukses! Orderan atas nama {nama_pelanggan} masuk ke Google Sheets dan Form dikosongkan!")
+            st.toast("Formulir dibersihkan otomatis!", icon="🧹")
             st.rerun()
         else:
             st.error("❌ Tombol tidak berfungsi karena koneksi ke Google Sheets terputus.")
@@ -106,7 +122,7 @@ if st.button("Simpan Orderan", type="primary", use_container_width=True):
         st.error("Nama pelanggan wajib diisi!")
 
 # ==============================================================================
-# 3. 🏛️ DASHBOARD PEMILAH LIVE (STRUKTUR DI-PERBAIKI TOTAL)
+# 3. 🏛 *DASHBOARD PEMILAH LIVE*
 # ==============================================================================
 if sheet is not None:
     try:
@@ -159,7 +175,6 @@ if sheet is not None:
                 
             with tab2:
                 st.write(f"### 📋 Rangkaian Buket Harus Siap Besok ({besok_str})")
-                # PERBAIKAN LOGIKA H-1
                 if not df_h1.empty:
                     st.dataframe(df_h1)
                 else:
@@ -167,7 +182,6 @@ if sheet is not None:
                     
             with tab3:
                 st.write(f"### 📋 Persiapan Bahan / Buket untuk Lusa ({lusa_str})")
-                # PERBAIKAN LOGIKA H-2
                 if not df_h2.empty:
                     st.dataframe(df_h2)
                 else:
@@ -175,7 +189,6 @@ if sheet is not None:
 
             with tab4:
                 st.write(f"### 📦 List Orderan Masuk untuk 3 Hari ke Depan ({hari_ke3_str})")
-                # PERBAIKAN LOGIKA H-3
                 if not df_h3.empty:
                     st.dataframe(df_h3)
                 else:
