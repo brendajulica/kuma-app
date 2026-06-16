@@ -55,33 +55,36 @@ with tab_ops:
         catatan = st.text_area("Catatan Khusus:")
         tgl_ambil = st.date_input("Tanggal Pengambilan:", value=datetime.now() + timedelta(days=1))
         
+   # ... (di dalam with tab_ops:)
         if st.button("Simpan Orderan", type="primary"):
-            if sheet is not None:
-                # MENGAMBIL WAKTU TEPAT SAAT TOMBOL DIKLIK
-                waktu_sekarang = datetime.now() 
-                
-                data_baru = [
-                    waktu_sekarang.strftime("%Y-%m-%d"), # Tanggal Input
-                    waktu_sekarang.strftime("%H:%M:%S"), # Waktu Input (Ditambah detik agar presisi)
-                    nama, 
-                    produk, 
-                    tema, 
-                    nama, 
-                    input_hp, 
-                    metode, 
-                    alamat, 
-                    catatan, 
-                    tgl_ambil.strftime("%Y-%m-%d"), 
-                    total, 
-                    dp, 
-                    (total - dp), 
-                    "Belum Selesai", 
-                    nama_admin
-                ]
-                sheet.append_row(data_baru)
-                st.success("Data berhasil tersimpan dengan waktu real-time!")
-                st.cache_data.clear() # Wajib: hapus cache agar dashboard langsung update
-                st.rerun()
+            # MENGAMBIL WAKTU TEPAT SAAT TOMBOL DIKLIK
+            waktu_klik = datetime.now()
+            
+            data_baru = [
+                waktu_klik.strftime("%Y-%m-%d"), # Tanggal Input (Real-time)
+                waktu_klik.strftime("%H:%M:%S"), # Waktu Input (Real-time)
+                nama, 
+                produk, 
+                tema, 
+                nama, 
+                input_hp, 
+                metode, 
+                alamat, 
+                catatan, 
+                tgl_ambil.strftime("%Y-%m-%d"), 
+                total, 
+                dp, 
+                (total - dp), 
+                "Belum Selesai", 
+                nama_admin
+            ]
+            
+            # Melakukan update ke Google Sheets
+            sheet.append_row(data_baru)
+            st.success("Data tersimpan dengan waktu real-time!")
+            
+            # Refresh aplikasi agar dashboard langsung terupdate
+            st.rerun()
 
    # ==============================================================================
 # 3. 🏛️ DASHBOARD PEMILAH LIVE (H-1, H-2, H-3, & H-7 REAL-TIME)
