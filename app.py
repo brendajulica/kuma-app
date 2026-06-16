@@ -197,8 +197,5 @@ with tab_laporan:
             
             c2.metric("Omset Bulan Ini", f"Rp {omset:,.0f}")
             c3.metric("DP Masuk", f"Rp {dp_masuk:,.0f}")
-            
-            if "Pilih Jenis Produk" in df_bulan.columns:
-                st.bar_chart(df_bulan["Pilih Jenis Produk"].value_counts())
         else:
             st.info("Belum ada data transaksi yang tercatat untuk bulan ini.")
