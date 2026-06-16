@@ -147,25 +147,65 @@ if sheet is not None:
                     st.info("Aman! Belum ada pesanan masuk untuk tepat seminggu ke depan.")
 
             with tab6:
-                st.write("### 🛠️ Tandai Pesanan yang Sudah Diambil / Dikirim")
-                df_pilihan = df_all[df_all["Status"] == "Belum Selesai"]
-                
-                if not df_pilihan.empty:
-                    pilihan_nama = df_pilihan["Nama Pelanggan"].tolist()
-                    orderan_terpilih = st.selectbox("Pilih Nama Pelanggan yang Sudah Selesai:", pilihan_nama)
-                    
-                    st.warning(f"⚠️ **PENTING:** Pastikan Anda benar-benar ingin menyelesaikan pesanan atas nama: **{orderan_terpilih}**.")
-                    konfirmasi_benar = st.checkbox(f"Ya, saya sudah memeriksa dan nama **{orderan_terpilih}** sudah benar.")
-                    
-                    if st.button("Ubah Status Jadi SELESAI ✅", use_container_width=True, disabled=not konfirmasi_benar):
-                        indeks_baris = df_all[df_all["Nama Pelanggan"] == orderan_terpilled].index[0] + 2 if orderan_terpilih in df_all["Nama Pelanggan"].values else df_all[df_all["Nama Pelanggan"] == orderan_terpilih].index[0] + 2
-                        # Cari indeks baris yang tepat
-                        indeks_baris = df_all[df_all["Nama Pelanggan"] == orderan_terpilih].index[0] + 2
-                        sheet.update_cell(indeks_baris, 14, "Selesai")
-                        st.success(f"👍 Berhasil! Status orderan atas nama {orderan_terpilih} sekarang sudah SELESAI!")
-                        st.rerun()
-                else:
-                    st.info("Semua orderan toko saat ini sudah selesai diproses! Mantap! 🎉")
-                    
-    except Exception as d_error:
-        st.info(f"💡 Dashboard Menunggu data: {d_error}")
+               st.write("### 🛠️ Tandai Pesanan yang Sudah Diambil / Dikirim")
+                    if not df_aktif.empty:
+                        # --- PERBAIKAN DI SINI ---
+                        # Menggabungkan Nama Pelanggan, Jenis Produk, dan Tanggal Pengambilan agar informasi dropdown lengkap dan sangat jelas
+                        df_aktif["Dropdown_Label"] = (
+                            df_aktif["Nama Pelanggan"].astype(str) + 
+                            " -> [" + df_aktif["Pilih Jenis Produk"].astype(str) + "] " +
+                            " (Ambil: " + df_aktif["Tanggal Pengambilan"].dt.strftime('%d-%m-%Y') + ")"
+                        )
+                        pilihan_label = df_aktif["Dropdown_Label"].tolist()
+                        
+                        orderan_terpilih = st.selectbox("Pilih Orderan Pelanggan yang Sudah Selesai:", pilihan_label)
+                        
+                        st.warning(f"⚠️ **PENTING:** Pastikan Anda benar-benar ingin menyelesaikan pesanan: **{orderan_terpilih}**.")
+                        konfirmasi_benar = st.checkbox("Ya, saya sudah memeriksa dan data ini sudah benar.")
+                        
+                        if st.button("Ubah Status Jadi SELESAI ✅", use_container_width=True, disabled=not konfirmasi_benar):
+                            # Membuat pencocokan label yang sama pada data utama
+                            df_histori["Dropdown_Label_Master"] = (
+                                df_histori["Nama Pelanggan"].astype(str) + 
+                                " -> [" + df_histori["Pilih Jenis Produk"].astype(str) + "] " +
+                                " (Ambil: " + df_histori["Tanggal Pengambilan"].dt.strftime('%d-%m-%Y') + ")"
+                            )
+                            indeks_baris = df_histori[df_histori["Dropdown_Label_Master"] == orderan_terpilih].index[0] + 2
+                            
+                            # Update status ke kolom ke-15 di Google Sheets
+                            sheet.update_cell(indeks_baris, 15, "Selesai")
+                            st.success(f"👍 Berhasil! Status orderan {orderan_terpilih} sekarang sudah SELESAI!")
+                            st.cache_data.clear()
+                            st.rerun()
+                    else:
+                        st.info("Semua orderan toko saat ini sudah selesai diproses! Mantap! 🎉")
+            else:
+                st.warning("Menunggu data masuk dari Google Sheets... Pastikan lembar kerja Anda tidak kosong.")
+                        
+        except Exception as d_error:
+            st.error(f"🚨 Terjadi gangguan sistem pembacaan dashboard: {d_error}")
+    else:
+        st.error("Koneksi aplikasi ke Google Sheets terputus.")
+
+# 4. TAB LAPORAN BULANAN
+with tab_laporan:
+    st.subheader("📊 Analisis Penjualan")
+    if not df_histori.empty and "Tanggal Input" in df_histori.columns:
+        df_valid = df_histori.dropna(subset=["Tanggal Input"]).copy()
+        now = datetime.now()
+        df_bulan = df_valid[(df_valid["Tanggal Input"].dt.month == now.month) & (df_valid["Tanggal Input"].dt.year == now.year)]
+        
+        if not df_bulan.empty:
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Total Order Bulan Ini", len(df_bulan))
+            
+            omset = df_bulan['Total Bayar Seharusnya'].sum() if 'Total Bayar Seharusnya' in df_bulan.columns else 0
+            dp_masuk = df_bulan['DP Awal'].sum() if 'DP Awal' in df_bulan.columns else 0
+            
+            c2.metric("Omset Bulan Ini", f"Rp {omset:,.0f}")
+            c3.metric("DP Masuk", f"Rp {dp_masuk:,.0f}")
+            
+            if "Pilih Jenis Produk" in df_bulan.columns:
+                st.bar_chart(df_bulan["Pilih Jenis Produk"].value_counts())
+        else:
+            st.info("Belum ada data transaksi yang tercatat untuk bulan ini.")
