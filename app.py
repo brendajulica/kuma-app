@@ -95,7 +95,7 @@ if st.button("Simpan Orderan", type="primary", use_container_width=True):
                 int(total_bayar),
                 int(dp_awal),
                 int(kekurangan),
-                "Belum Selesai"  # Otomatis berstatus Belum Selesai saat diinput
+                "Belum Selesai"
             ]
             sheet.append_row(new_row)
             st.success(f"🎉 Sukses! Orderan atas nama {nama_pelanggan} masuk ke Google Sheets!")
@@ -106,13 +106,12 @@ if st.button("Simpan Orderan", type="primary", use_container_width=True):
         st.error("Nama pelanggan wajib diisi!")
 
 # ==============================================================================
-# 3. 🏛️ DASHBOARD PEMILAH LIVE + TOMBOL UPDATE STATUS SELESAI
+# 3. 🏛️ DASHBOARD PEMILAH LIVE (STRUKTUR DI-PERBAIKI TOTAL)
 # ==============================================================================
 if sheet is not None:
     try:
         records = sheet.get_all_records()
         if records:
-            # Membaca data base utama
             df_all = pd.DataFrame(records)
             
             st.write("---")
@@ -133,13 +132,11 @@ if sheet is not None:
             )
             st.write("") 
             
-            # Pengaturan Waktu Indonesia
             hari_ini_wib = pd.Timestamp.now(tz="Asia/Jakarta")
             besok_str = (hari_ini_wib + timedelta(days=1)).strftime("%Y-%m-%d")
             lusa_str = (hari_ini_wib + timedelta(days=2)).strftime("%Y-%m-%d")
             hari_ke3_str = (hari_ini_wib + timedelta(days=3)).strftime("%Y-%m-%d")
             
-            # Memisahkan data aktif (Belum Selesai) untuk tab operasional H-1 s/d H-3
             if "Status" in df_all.columns and "Tanggal Pengambilan" in df_all.columns:
                 df_aktif = df_all[df_all["Status"] == "Belum Selesai"]
                 df_h1 = df_aktif[df_aktif["Tanggal Pengambilan"] == besok_str]
@@ -148,13 +145,12 @@ if sheet is not None:
             else:
                 df_h1, df_h2, df_h3 = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
             
-            # Membuat Menu Tab
             tab1, tab2, tab3, tab4, tab5 = st.tabs([
                 "🚨 Semua Orderan", 
                 "⏳ H-1 (Esok)", 
                 "🗓️ H-2 (Lusa)",
                 "📅 H-3 (3 Hari Lagi)",
-                "✅ Tandai Selesai" # TAB BARU UNTUK KARYAWAN
+                "✅ Tandai Selesai"
             ])
             
             with tab1:
@@ -163,33 +159,39 @@ if sheet is not None:
                 
             with tab2:
                 st.write(f"### 📋 Rangkaian Buket Harus Siap Besok ({besok_str})")
-                st.dataframe(df_h1) if not df_h1.empty else st.info("Aman! Tidak ada pesanan untuk besok.")
+                # PERBAIKAN LOGIKA H-1
+                if not df_h1.empty:
+                    st.dataframe(df_h1)
+                else:
+                    st.info("Aman! Tidak ada pesanan untuk besok.")
                     
             with tab3:
                 st.write(f"### 📋 Persiapan Bahan / Buket untuk Lusa ({lusa_str})")
-                st.dataframe(df_h2) if not df_h2.empty else st.info("Aman! Tidak ada pesanan untuk lusa.")
+                # PERBAIKAN LOGIKA H-2
+                if not df_h2.empty:
+                    st.dataframe(df_h2)
+                else:
+                    st.info("Aman! Tidak ada pesanan untuk lusa.")
 
             with tab4:
                 st.write(f"### 📦 List Orderan Masuk untuk 3 Hari ke Depan ({hari_ke3_str})")
-                st.dataframe(df_h3) if not df_h3.empty else st.info("Aman! Belum ada pesanan masuk untuk 3 hari ke depan.")
+                # PERBAIKAN LOGIKA H-3
+                if not df_h3.empty:
+                    st.dataframe(df_h3)
+                else:
+                    st.info("Aman! Belum ada pesanan masuk untuk 3 hari ke depan.")
 
-            # --- FITUR INTERAKTIF BARU: UPDATE STATUS SELESAI VIA WEB ---
             with tab5:
                 st.write("### 🛠️ Tandai Pesanan yang Sudah Diambil / Dikirim")
                 df_pilihan = df_all[df_all["Status"] == "Belum Selesai"]
                 
                 if not df_pilihan.empty:
-                    # Membuat daftar pilihan berdasarkan nama pelanggan
                     pilihan_nama = df_pilihan["Nama Pelanggan"].tolist()
                     orderan_terpilih = st.selectbox("Pilih Nama Pelanggan yang Sudah Selesai:", pilihan_nama)
                     
                     if st.button("Ubah Status Jadi SELESAI ✅", use_container_width=True):
-                        # Cari baris ke berapa di Google Sheets (gspread index dimulai dari 1, ditambah 2 karena header row)
                         indeks_baris = df_all[df_all["Nama Pelanggan"] == orderan_terpilih].index[0] + 2
-                        
-                        # Kolom Status berada di urutan ke-14
                         sheet.update_cell(indeks_baris, 14, "Selesai")
-                        
                         st.success(f"👍 Berhasil! Status orderan atas nama {orderan_terpilih} sekarang sudah SELESAI!")
                         st.rerun()
                 else:
