@@ -189,6 +189,7 @@ with tab_laporan:
         df_bulan = df_valid[(df_valid["Tanggal Input"].dt.month == now.month) & (df_valid["Tanggal Input"].dt.year == now.year)]
         
         if not df_bulan.empty:
+            # 1. Tampilan Ringkasan Finansial (Metrics)
             c1, c2, c3 = st.columns(3)
             c1.metric("Total Order Bulan Ini", len(df_bulan))
             
@@ -197,5 +198,20 @@ with tab_laporan:
             
             c2.metric("Omset Bulan Ini", f"Rp {omset:,.0f}")
             c3.metric("DP Masuk", f"Rp {dp_masuk:,.0f}")
+            
+            st.write("---")
+            
+            # 2. Tampilan Jumlah Inputan per Admin (Fitur Baru)
+            st.write("### 👩‍💻 Produktivitas Admin (Bulan Ini)")
+            if "Nama Admin" in df_bulan.columns:
+                # Menghitung jumlah inputan per admin dan mengubahnya menjadi tabel yang rapi
+                df_admin = df_bulan["Nama Admin"].value_counts().reset_index()
+                df_admin.columns = ["Nama Admin", "Jumlah Input Pesanan"]
+                
+                # Menampilkan tabel produktivitas admin di dashboard
+                st.dataframe(df_admin, use_container_width=True, hide_index=True)
+            else:
+                st.warning("Kolom 'Nama Admin' tidak ditemukan di Google Sheets.")
+                
         else:
             st.info("Belum ada data transaksi yang tercatat untuk bulan ini.")
