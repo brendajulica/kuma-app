@@ -22,18 +22,18 @@ def dapatkan_koneksi_sheets():
 
 sheet = dapatkan_koneksi_sheets()
 
-# Load Data dengan pembersihan
 df_histori = pd.DataFrame()
 if sheet:
     try:
         data = sheet.get_all_records()
         df_histori = pd.DataFrame(data)
+        # Pembersihan Data
         df_histori = df_histori.fillna("-")
         df_histori["Tanggal Input"] = pd.to_datetime(df_histori["Tanggal Input"], errors='coerce')
-        # Konversi Tanggal Pengambilan agar bisa difilter
         df_histori["Tanggal Pengambilan"] = pd.to_datetime(df_histori["Tanggal Pengambilan"], errors='coerce')
         df_histori["Total Bayar Seharusnya"] = pd.to_numeric(df_histori["Total Bayar Seharusnya"], errors='coerce').fillna(0)
         df_histori["DP Awal"] = pd.to_numeric(df_histori["DP Awal"], errors='coerce').fillna(0)
+        df_histori["Kekurangan"] = pd.to_numeric(df_histori["Kekurangan"], errors='coerce').fillna(0)
     except:
         pass
 
@@ -41,28 +41,38 @@ if sheet:
 tab_ops, tab_laporan = st.tabs(["📋 Operasional Pesanan", "📊 Laporan Bulanan"])
 
 with tab_ops:
-    # FORM INPUT (Singkat)
-    with st.expander("📝 Form Input Pesanan Baru"):
-        nama_admin = st.selectbox("Pilih Admin:", ["Admin 1", "Admin 2", "Admin 3"])
-        c1, c2 = st.columns(2)
-        with c1:
-            input_hp = st.text_input("No HP:")
+    st.subheader("📝 Form Input Pesanan")
+    with st.container(border=True):
+        nama_admin = st.selectbox("Pilih Nama Admin:", ["Admin 1", "Admin 2", "Admin 3"])
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            input_hp = st.text_input("No HP Penerima:")
             nama = st.text_input("Nama Pelanggan:")
-        with c2:
-            produk = st.selectbox("Produk:", ["Buket A", "Buket B", "Buket C", "Buket F", "Buket S", "Acc", "Tas", "Mahar"])
-            tgl_ambil = st.date_input("Tanggal Pengambilan:", value=datetime.now() + timedelta(days=1))
+        with col2:
+            produk = st.selectbox("Pilih Jenis Produk:", ["Buket A", "Buket B", "Buket C", "Buket F", "Buket S", "Acc", "Tas", "Mahar"])
+            metode = st.selectbox("Metode Penyerahan:", ["Antar/Kirim", "Ambil di Toko"])
+        with col3:
+            total = st.number_input("Total Bayar:", min_value=0)
+            dp = st.number_input("DP Awal:", min_value=0)
+            st.write(f"Kekurangan: Rp {total - dp:,}")
         
-        if st.button("Simpan Orderan"):
+        tema = st.text_input("Tema Warna Buket:")
+        alamat = st.text_area("Alamat Lengkap Pengiriman:")
+        catatan = st.text_area("Catatan Khusus:")
+        tgl_ambil = st.date_input("Tanggal Pengambilan:", value=datetime.now() + timedelta(days=1))
+        
+        if st.button("Simpan Orderan", type="primary"):
             now = datetime.now()
-            sheet.append_row([now.strftime("%Y-%m-%d"), now.strftime("%H:%M"), nama, produk, "-", nama, input_hp, "Antar", "-", "-", tgl_ambil.strftime("%Y-%m-%d"), 0, 0, 0, "Belum Selesai", nama_admin])
+            sheet.append_row([
+                now.strftime("%Y-%m-%d"), now.strftime("%H:%M"), nama, produk, tema, nama, 
+                input_hp, metode, alamat, catatan, tgl_ambil.strftime("%Y-%m-%d"), 
+                total, dp, (total - dp), "Belum Selesai", nama_admin
+            ])
             st.rerun()
 
-    # DASHBOARD DENGAN FILTER H-X
     st.subheader("🏛️ Dashboard Live")
     if not df_histori.empty:
         df_aktif = df_histori[df_histori["Status"] == "Belum Selesai"].copy()
-        
-        # Logika Filter Tanggal
         today = datetime.now().date()
         tabs = st.tabs(["🚨 Semua", "⏳ H-1", "🗓️ H-2", "📅 H-3", "📆 H-7", "✅ Selesai"])
         
@@ -82,7 +92,7 @@ with tab_laporan:
     if not df_histori.empty:
         df_valid = df_histori.dropna(subset=["Tanggal Input"]).copy()
         now = datetime.now()
-        df_bulan = df_valid[(df_valid["Tanggal Input"].dt.month == now.month)]
+        df_bulan = df_valid[(df_valid["Tanggal Input"].dt.month == now.month) & (df_valid["Tanggal Input"].dt.year == now.year)]
         
         c1, c2, c3 = st.columns(3)
         c1.metric("Total Order", len(df_bulan))
