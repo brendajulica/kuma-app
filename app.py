@@ -16,14 +16,12 @@ def dapatkan_koneksi_sheets():
     try:
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
         
-        # Mengecek apakah rahasia gspread ada di Secrets
         if "gspread" in st.secrets and "creds" in st.secrets["gspread"]:
             info_kunci = st.secrets["gspread"]["creds"]
             info_dict = json.loads(info_kunci)
             creds = Credentials.from_service_account_info(info_dict, scopes=scope)
             client = gspread.authorize(creds)
             
-            # Nama file Google Sheets Anda di Google Drive
             nama_file_sheets = "Database Kuma Gift" 
             return client.open(nama_file_sheets).sheet1
         else:
@@ -57,6 +55,9 @@ alamat = "-"
 if metode == "Antar / Kirim":
     alamat = st.text_area("Alamat Lengkap Pengiriman:")
 
+# --- FITUR BARU: CATATAN KHUSUS ---
+catatan_khusus = st.text_area("Catatan Khusus (Isi Kartu Ucapan / Request Pita / Jam Kirim):", value="-")
+
 # Tanggal Pengambilan otomatis default ke tanggal besok (H-1)
 tanggal_ambil = st.date_input("Tanggal Pengambilan / Pengiriman Orderan:", value=datetime.today() + timedelta(days=1))
 
@@ -77,11 +78,11 @@ st.write("---")
 if st.button("Simpan Orderan", type="primary"):
     if nama_pelanggan:
         if sheet is not None:
-            # MEMAKSA SISTEM MEMBACA JAM WIB INDONESIA (ASIA/JAKARTA)
             jam_wib = pd.Timestamp.now(tz="Asia/Jakarta").strftime("%Y-%m-%d %H:%M")
             
+            # Data di bawah ini harus urut pas dengan kolom Google Sheets Anda
             new_row = [
-                jam_wib,  # Jam input terjamin real-time sesuai HP toko Anda
+                jam_wib,
                 nama_pelanggan,
                 produk,
                 tema_warna if tema_warna else "-",
@@ -89,6 +90,7 @@ if st.button("Simpan Orderan", type="primary"):
                 no_hp_penerima if no_hp_penerima else "-",
                 metode,
                 alamat if alamat else "-",
+                catatan_khusus if catatan_khusus else "-",  # Memasukkan catatan khusus
                 tanggal_ambil.strftime("%Y-%m-%d"),
                 int(total_bayar),
                 int(dp_awal),
@@ -98,7 +100,7 @@ if st.button("Simpan Orderan", type="primary"):
             st.success(f"🎉 Sukses! Orderan atas nama {nama_pelanggan} masuk ke Google Sheets!")
             st.rerun()
         else:
-            st.error("❌ Tombol tidak berfungsi karena koneksi ke Google Sheets terputus. Lihat detail eror di bagian atas halaman.")
+            st.error("❌ Tombol tidak berfungsi karena koneksi ke Google Sheets terputus.")
     else:
         st.error("Nama pelanggan wajib diisi!")
 
@@ -114,12 +116,10 @@ if sheet is not None:
             st.write("---")
             st.write("## 🏛️ DASHBOARD LIVE ORDERAN KUMA GIFT")
             
-            # Hitung otomatis tanggal besok (H-1) dan lusa (H-2) berdasarkan waktu Indonesia
             hari_ini_wib = pd.Timestamp.now(tz="Asia/Jakarta")
             besok_str = (hari_ini_wib + timedelta(days=1)).strftime("%Y-%m-%d")
             lusa_str = (hari_ini_wib + timedelta(days=2)).strftime("%Y-%m-%d")
             
-            # Memilah data berdasarkan kolom Tanggal Pengambilan
             if "Tanggal Pengambilan" in df_all.columns:
                 df_h1 = df_all[df_all["Tanggal Pengambilan"] == besok_str]
                 df_h2 = df_all[df_all["Tanggal Pengambilan"] == lusa_str]
@@ -127,7 +127,6 @@ if sheet is not None:
                 df_h1 = pd.DataFrame()
                 df_h2 = pd.DataFrame()
             
-            # Tampilan menu TAB Dashboard
             tab1, tab2, tab3 = st.tabs(["🚨 Semua Orderan", "⏳ Orderan H-1 (Esok Hari)", "🗓️ Orderan H-2 (Lusa)"])
             
             with tab1:
