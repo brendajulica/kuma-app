@@ -62,15 +62,27 @@ with tab_ops:
 
     # DASHBOARD
     st.subheader("🏛️ Dashboard Live")
-    if not df_histori.empty:
-        # Filter Status (strip untuk memastikan tidak ada spasi)
-        df_aktif = df_histori[df_histori["Status"] == "Belum Selesai"].copy()
+    
+    if sheet is None:
+        st.error("Koneksi Sheets terputus.")
+    elif df_histori.empty:
+        st.warning("Data kosong! Pastikan Google Sheets memiliki isi.")
+    else:
+        # Debugging: Tampilkan jumlah baris yang ditemukan
+        st.write(f"Total baris ditemukan: {len(df_histori)}")
+        
+        # Filter Status (pastikan tulisan di Sheets 'Belum Selesai')
+        # Kita gunakan .str.contains agar lebih fleksibel terhadap spasi
+        df_aktif = df_histori[df_histori["Status"].str.contains("Belum Selesai", na=False)].copy()
         
         if df_aktif.empty:
-            st.warning("Tidak ada pesanan dengan status 'Belum Selesai' yang ditemukan.")
+            st.warning("Tidak ada data dengan status 'Belum Selesai'. Cek apakah penulisan status di Google Sheets sudah benar.")
+            st.write("Contoh data pertama di sheet Anda:", df_histori.iloc[0].to_dict() if len(df_histori)>0 else "Kosong")
         else:
             today = datetime.now().date()
             tabs = st.tabs(["🚨 Semua", "⏳ H-1", "🗓️ H-2", "📅 H-3", "📆 H-7", "✅ Tandai Selesai"])
+            
+            # ... (Lanjutkan dengan kode tabs seperti sebelumnya) ...
             
             def filter_tgl(df, days):
                 target = today + timedelta(days=days)
