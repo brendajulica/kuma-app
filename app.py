@@ -1,34 +1,3 @@
-# 1. KONEKSI & LOAD DATA
-@st.cache_resource
-def dapatkan_koneksi_sheets():
-    try:
-        if "gspread" in st.secrets:
-            creds = Credentials.from_service_account_info(json.loads(st.secrets["gspread"]["creds"]), scopes=["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"])
-            return gspread.authorize(creds).open("Database Kuma Gift").sheet1
-    except:
-        return None
-    return None
-
-sheet = dapatkan_koneksi_sheets()
-
-df_histori = pd.DataFrame()
-if sheet:
-    try:
-        data = sheet.get_all_records()
-        df_histori = pd.DataFrame(data)
-        df_histori = df_histori.fillna("-")
-        
-        # --- PERBAIKAN UTAMA DI SINI ---
-        # Konversi paksa kolom tanggal dengan errors='coerce'
-        # Jika ada data yang rusak, akan berubah menjadi NaT (Not a Time)
-        df_histori["Tanggal Input"] = pd.to_datetime(df_histori["Tanggal Input"], errors='coerce')
-        df_histori["Tanggal Pengambilan"] = pd.to_datetime(df_histori["Tanggal Pengambilan"], errors='coerce')
-        
-        df_histori["Total Bayar Seharusnya"] = pd.to_numeric(df_histori["Total Bayar Seharusnya"], errors='coerce').fillna(0)
-        df_histori["DP Awal"] = pd.to_numeric(df_histori["DP Awal"], errors='coerce').fillna(0)
-        df_histori["Kekurangan"] = pd.to_numeric(df_histori["Kekurangan"], errors='coerce').fillna(0)
-    except:
-        pass
 import streamlit as st
 import pandas as pd
 import gspread
@@ -36,11 +5,11 @@ from google.oauth2.service_account import Credentials
 from datetime import datetime, timedelta
 import json
 
-# Konfigurasi Halaman
+# 1. KONFIGURASI HALAMAN
 st.set_page_config(page_title="Kuma Gift Management", layout="wide")
 st.title("🪻 Kuma Gift Integrated Management System")
 
-# 1. KONEKSI & LOAD DATA
+# 2. KONEKSI & LOAD DATA
 @st.cache_resource
 def dapatkan_koneksi_sheets():
     try:
@@ -58,8 +27,9 @@ if sheet:
     try:
         data = sheet.get_all_records()
         df_histori = pd.DataFrame(data)
-        # Pembersihan Data
         df_histori = df_histori.fillna("-")
+        
+        # Konversi paksa kolom agar tidak Eror
         df_histori["Tanggal Input"] = pd.to_datetime(df_histori["Tanggal Input"], errors='coerce')
         df_histori["Tanggal Pengambilan"] = pd.to_datetime(df_histori["Tanggal Pengambilan"], errors='coerce')
         df_histori["Total Bayar Seharusnya"] = pd.to_numeric(df_histori["Total Bayar Seharusnya"], errors='coerce').fillna(0)
@@ -68,7 +38,7 @@ if sheet:
     except:
         pass
 
-# 2. TAB MENU
+# 3. TAB MENU
 tab_ops, tab_laporan = st.tabs(["📋 Operasional Pesanan", "📊 Laporan Bulanan"])
 
 with tab_ops:
@@ -97,36 +67,4 @@ with tab_ops:
             sheet.append_row([
                 now.strftime("%Y-%m-%d"), now.strftime("%H:%M"), nama, produk, tema, nama, 
                 input_hp, metode, alamat, catatan, tgl_ambil.strftime("%Y-%m-%d"), 
-                total, dp, (total - dp), "Belum Selesai", nama_admin
-            ])
-            st.rerun()
-
-    st.subheader("🏛️ Dashboard Live")
-    if not df_histori.empty:
-        df_aktif = df_histori[df_histori["Status"] == "Belum Selesai"].copy()
-        today = datetime.now().date()
-        tabs = st.tabs(["🚨 Semua", "⏳ H-1", "🗓️ H-2", "📅 H-3", "📆 H-7", "✅ Selesai"])
-        
-        def filter_tgl(df, days):
-            target = today + timedelta(days=days)
-            return df[df["Tanggal Pengambilan"].dt.date == target]
-
-        with tabs[0]: st.dataframe(df_aktif, use_container_width=True)
-        with tabs[1]: st.dataframe(filter_tgl(df_aktif, 1), use_container_width=True)
-        with tabs[2]: st.dataframe(filter_tgl(df_aktif, 2), use_container_width=True)
-        with tabs[3]: st.dataframe(filter_tgl(df_aktif, 3), use_container_width=True)
-        with tabs[4]: st.dataframe(filter_tgl(df_aktif, 7), use_container_width=True)
-        with tabs[5]: st.dataframe(df_histori[df_histori["Status"] == "Selesai"], use_container_width=True)
-
-with tab_laporan:
-    st.subheader("📊 Analisis Penjualan")
-    if not df_histori.empty:
-        df_valid = df_histori.dropna(subset=["Tanggal Input"]).copy()
-        now = datetime.now()
-        df_bulan = df_valid[(df_valid["Tanggal Input"].dt.month == now.month) & (df_valid["Tanggal Input"].dt.year == now.year)]
-        
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Total Order", len(df_bulan))
-        c2.metric("Omset", f"Rp {df_bulan['Total Bayar Seharusnya'].sum():,.0f}")
-        c3.metric("DP Masuk", f"Rp {df_bulan['DP Awal'].sum():,.0f}")
-        st.bar_chart(df_bulan["Pilih Jenis Produk"].value_counts())
+                total, dp, (total - dp), "Belum Selesai
