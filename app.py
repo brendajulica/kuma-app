@@ -35,15 +35,13 @@ sheet = dapatkan_koneksi_sheets()
 # ==============================================================================
 # SIKLUS PEMBERSIH FORM (SESSION STATE RESET)
 # ==============================================================================
-# Jika kunci reset belum ada di sistem memory, buat baru
 if "input_counter" not in st.session_state:
     st.session_state["input_counter"] = 0
 
-# Kunci unik untuk memaksa kotak input mendeteksi perubahan data
 kunci_bantu = f"v1_{st.session_state['input_counter']}"
 
 # ==============================================================================
-# 2. FORM INPUTAN UTAMA (SUDAH DIBERI KUNCI RESET)
+# 2. FORM INPUTAN UTAMA
 # ==============================================================================
 st.write("### 📝 Formulir Input Pesanan")
 
@@ -110,9 +108,7 @@ if st.button("Simpan Orderan", type="primary", use_container_width=True):
             ]
             sheet.append_row(new_row)
             
-            # PROSES MEMBERSIHKAN FORM: Mengubah angka counter agar form mendeteksi sebagai halaman kosong baru
             st.session_state["input_counter"] += 1
-            
             st.success(f"🎉 Sukses! Orderan atas nama {nama_pelanggan} masuk ke Google Sheets dan Form dikosongkan!")
             st.toast("Formulir dibersihkan otomatis!", icon="🧹")
             st.rerun()
@@ -122,7 +118,7 @@ if st.button("Simpan Orderan", type="primary", use_container_width=True):
         st.error("Nama pelanggan wajib diisi!")
 
 # ==============================================================================
-# 3. 🏛 *DASHBOARD PEMILAH LIVE*
+# 3. 🏛️ DASHBOARD PEMILAH LIVE
 # ==============================================================================
 if sheet is not None:
     try:
@@ -194,6 +190,7 @@ if sheet is not None:
                 else:
                     st.info("Aman! Belum ada pesanan masuk untuk 3 hari ke depan.")
 
+            # --- DIBERIKAN PROTEKSI PERINGATAN KONFIRMASI NAMA DI SINI ---
             with tab5:
                 st.write("### 🛠️ Tandai Pesanan yang Sudah Diambil / Dikirim")
                 df_pilihan = df_all[df_all["Status"] == "Belum Selesai"]
@@ -202,7 +199,12 @@ if sheet is not None:
                     pilihan_nama = df_pilihan["Nama Pelanggan"].tolist()
                     orderan_terpilih = st.selectbox("Pilih Nama Pelanggan yang Sudah Selesai:", pilihan_nama)
                     
-                    if st.button("Ubah Status Jadi SELESAI ✅", use_container_width=True):
+                    # 🔴 ELEMEN PERINGATAN BARU: Kotak Konfirmasi Kasir
+                    st.warning(f"⚠️ **PENTING:** Pastikan Anda benar-benar ingin menyelesaikan pesanan atas nama: **{orderan_terpilih}**.")
+                    konfirmasi_benar = st.checkbox(f"Ya, saya sudah memeriksa dan nama **{orderan_terpilih}** sudah benar.")
+                    
+                    # Tombol hanya aktif jika kotak konfirmasi di-centang (disabled=not konfirmasi_benar)
+                    if st.button("Ubah Status Jadi SELESAI ✅", use_container_width=True, disabled=not konfirmasi_benar):
                         indeks_baris = df_all[df_all["Nama Pelanggan"] == orderan_terpilih].index[0] + 2
                         sheet.update_cell(indeks_baris, 14, "Selesai")
                         st.success(f"👍 Berhasil! Status orderan atas nama {orderan_terpilih} sekarang sudah SELESAI!")
