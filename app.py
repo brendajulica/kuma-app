@@ -27,13 +27,15 @@ if sheet:
     try:
         data = sheet.get_all_records()
         df_histori = pd.DataFrame(data)
-        # Pembersihan Data (Anti-Eror)
+        
+        # PEMBERSIHAN DATA (Anti-Eror)
         df_histori = df_histori.fillna("-")
         df_histori["Nama Pelanggan"] = df_histori["Nama Pelanggan"].astype(str)
         df_histori["Pilih Jenis Produk"] = df_histori["Pilih Jenis Produk"].astype(str)
         df_histori["No HP Penerima"] = df_histori["No HP Penerima"].astype(str).str.strip()
         df_histori["Total Bayar Seharusnya"] = pd.to_numeric(df_histori["Total Bayar Seharusnya"], errors='coerce').fillna(0)
-        # Konversi Tanggal dengan penanganan eror
+        
+        # KONVERSI TANGGAL YANG AMAN
         df_histori["Tanggal Input"] = pd.to_datetime(df_histori["Tanggal Input"], errors='coerce')
     except:
         pass
@@ -42,7 +44,6 @@ if sheet:
 tab_ops, tab_laporan = st.tabs(["📋 Operasional Pesanan", "📊 Laporan Bulanan"])
 
 with tab_ops:
-    # FORM INPUT
     st.subheader("📝 Form Input Pesanan")
     with st.container(border=True):
         nama_admin = st.selectbox("Pilih Nama Admin:", ["Admin 1", "Admin 2", "Admin 3"])
@@ -67,7 +68,6 @@ with tab_ops:
                 st.success(f"Disimpan oleh {nama_admin}!")
                 st.rerun()
 
-    # DASHBOARD
     st.subheader("🏛️ Dashboard Live")
     if not df_histori.empty:
         df_aktif = df_histori[df_histori["Status"] == "Belum Selesai"].copy()
@@ -78,13 +78,10 @@ with tab_ops:
             if not df_aktif.empty:
                 df_aktif["Display"] = df_aktif["Nama Pelanggan"] + " (" + df_aktif["Pilih Jenis Produk"] + ")"
                 pilihan = st.selectbox("Pilih pesanan yang selesai:", df_aktif["Display"].tolist())
-                
                 nama_pilih = pilihan.split(" (")[0]
                 produk_pilih = pilihan.split(" (")[1].replace(")", "")
-                
                 st.info(f"Verifikasi: **{nama_pilih}** - **{produk_pilih}**")
                 konfirmasi = st.checkbox("Ya, saya sudah memastikan pesanan ini SELESAI.")
-                
                 if st.button("Ubah Status Jadi SELESAI", disabled=not konfirmasi):
                     mask = (df_histori["Nama Pelanggan"] == nama_pilih) & (df_histori["Pilih Jenis Produk"] == produk_pilih) & (df_histori["Status"] == "Belum Selesai")
                     sheet.update_cell(df_histori[mask].index[0] + 2, 15, "Selesai")
@@ -93,17 +90,6 @@ with tab_ops:
 with tab_laporan:
     st.subheader("📊 Analisis Penjualan Bulan Ini")
     if not df_histori.empty:
-        # Memastikan filter bulan berjalan aman
-        df_bulan_ini = df_histori[df_histori["Tanggal Input"].dt.month == datetime.now().month]
-        
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Total Order", len(df_bulan_ini))
-        c2.metric("Omset", f"Rp {df_bulan_ini['Total Bayar Seharusnya'].sum():,.0f}")
-        c3.metric("Produk Favorit", df_bulan_ini["Pilih Jenis Produk"].mode()[0] if not df_bulan_ini.empty else "-")
-        
-        st.write("### 📈 Grafik Produk Terlaris")
-        st.bar_chart(df_bulan_ini["Pilih Jenis Produk"].value_counts())
-        
-        st.write("### 👥 Performa Admin (Jumlah Order)")
-        if "Nama Admin" in df_bulan_ini.columns:
-            st.table(df_bulan_ini["Nama Admin"].value_counts().reset_index().rename(columns={"count": "Jumlah Order"}))
+        # Filter aman dengan pengecekan NaT
+        df_valid = df_histori.dropna(subset=["Tanggal Input"])
+        df_bulan_ini = df_
