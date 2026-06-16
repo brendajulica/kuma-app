@@ -118,7 +118,7 @@ if st.button("Simpan Orderan", type="primary", use_container_width=True):
         st.error("Nama pelanggan wajib diisi!")
 
 # ==============================================================================
-# 3. 🏛️ DASHBOARD PEMILAH LIVE
+# 3. 🏛️ DASHBOARD PEMILAH LIVE (H-1, H-2, H-3, & H-7 REAL-TIME)
 # ==============================================================================
 if sheet is not None:
     try:
@@ -144,24 +144,29 @@ if sheet is not None:
             )
             st.write("") 
             
+            # Perhitungan tanggal otomatis
             hari_ini_wib = pd.Timestamp.now(tz="Asia/Jakarta")
             besok_str = (hari_ini_wib + timedelta(days=1)).strftime("%Y-%m-%d")
             lusa_str = (hari_ini_wib + timedelta(days=2)).strftime("%Y-%m-%d")
             hari_ke3_str = (hari_ini_wib + timedelta(days=3)).strftime("%Y-%m-%d")
+            hari_ke7_str = (hari_ini_wib + timedelta(days=7)).strftime("%Y-%m-%d") # Logika H-7 seminggu lagi
             
             if "Status" in df_all.columns and "Tanggal Pengambilan" in df_all.columns:
                 df_aktif = df_all[df_all["Status"] == "Belum Selesai"]
                 df_h1 = df_aktif[df_aktif["Tanggal Pengambilan"] == besok_str]
                 df_h2 = df_aktif[df_aktif["Tanggal Pengambilan"] == lusa_str]
                 df_h3 = df_aktif[df_aktif["Tanggal Pengambilan"] == hari_ke3_str]
+                df_h7 = df_aktif[df_aktif["Tanggal Pengambilan"] == hari_ke7_str] # Filter H-7
             else:
-                df_h1, df_h2, df_h3 = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+                df_h1, df_h2, df_h3, df_h7 = pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
             
-            tab1, tab2, tab3, tab4, tab5 = st.tabs([
-                "🚨 Semua Orderan", 
-                "⏳ H-1 (Esok)", 
+            # Menu Tab Dashboard (Ditambah opsi H-7)
+            tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+                "🚨 Semua", 
+                "⏳ H-1 (Besok)", 
                 "🗓️ H-2 (Lusa)",
-                "📅 H-3 (3 Hari Lagi)",
+                "📅 H-3 (3 Hari)",
+                "📆 H-7 (Seminggu)", # TAB BARU H-7
                 "✅ Tandai Selesai"
             ])
             
@@ -190,8 +195,14 @@ if sheet is not None:
                 else:
                     st.info("Aman! Belum ada pesanan masuk untuk 3 hari ke depan.")
 
-            # --- DIBERIKAN PROTEKSI PERINGATAN KONFIRMASI NAMA DI SINI ---
             with tab5:
+                st.write(f"### 💐 Persiapan Stok & Bahan untuk Seminggu ke Depan ({hari_ke7_str})")
+                if not df_h7.empty:
+                    st.dataframe(df_h7)
+                else:
+                    st.info("Aman! Belum ada pesanan masuk untuk tepat seminggu ke depan.")
+
+            with tab6:
                 st.write("### 🛠️ Tandai Pesanan yang Sudah Diambil / Dikirim")
                 df_pilihan = df_all[df_all["Status"] == "Belum Selesai"]
                 
@@ -199,12 +210,12 @@ if sheet is not None:
                     pilihan_nama = df_pilihan["Nama Pelanggan"].tolist()
                     orderan_terpilih = st.selectbox("Pilih Nama Pelanggan yang Sudah Selesai:", pilihan_nama)
                     
-                    # 🔴 ELEMEN PERINGATAN BARU: Kotak Konfirmasi Kasir
                     st.warning(f"⚠️ **PENTING:** Pastikan Anda benar-benar ingin menyelesaikan pesanan atas nama: **{orderan_terpilih}**.")
                     konfirmasi_benar = st.checkbox(f"Ya, saya sudah memeriksa dan nama **{orderan_terpilih}** sudah benar.")
                     
-                    # Tombol hanya aktif jika kotak konfirmasi di-centang (disabled=not konfirmasi_benar)
                     if st.button("Ubah Status Jadi SELESAI ✅", use_container_width=True, disabled=not konfirmasi_benar):
+                        indeks_baris = df_all[df_all["Nama Pelanggan"] == orderan_terpilled].index[0] + 2 if orderan_terpilih in df_all["Nama Pelanggan"].values else df_all[df_all["Nama Pelanggan"] == orderan_terpilih].index[0] + 2
+                        # Cari indeks baris yang tepat
                         indeks_baris = df_all[df_all["Nama Pelanggan"] == orderan_terpilih].index[0] + 2
                         sheet.update_cell(indeks_baris, 14, "Selesai")
                         st.success(f"👍 Berhasil! Status orderan atas nama {orderan_terpilih} sekarang sudah SELESAI!")
