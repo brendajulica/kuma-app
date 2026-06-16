@@ -23,14 +23,13 @@ def dapatkan_koneksi_sheets():
             creds = Credentials.from_service_account_info(info_dict, scopes=scope)
             client = gspread.authorize(creds)
             
-            # GANTI dengan nama file Google Sheets Anda jika berbeda
+            # Nama file Google Sheets Anda di Google Drive
             nama_file_sheets = "Database Kuma Gift" 
             return client.open(nama_file_sheets).sheet1
         else:
             st.error("❌ Eror: Struktur [gspread] atau 'creds' tidak ditemukan di menu Secrets Streamlit Cloud!")
             return None
     except Exception as e:
-        # Menampilkan eror asli dari sistem Google/JSON di layar
         st.error(f"❌ Eror Sistem Koneksi: {e}")
         return None
 
@@ -58,6 +57,7 @@ alamat = "-"
 if metode == "Antar / Kirim":
     alamat = st.text_area("Alamat Lengkap Pengiriman:")
 
+# Tanggal Pengambilan otomatis default ke tanggal besok (H-1)
 tanggal_ambil = st.date_input("Tanggal Pengambilan / Pengiriman Orderan:", value=datetime.today() + timedelta(days=1))
 
 st.write("---")
@@ -100,7 +100,7 @@ if st.button("Simpan Orderan", type="primary"):
         st.error("Nama pelanggan wajib diisi!")
 
 # ==============================================================================
-# 3. DASHBOARD PEMILAH LIVE
+# 3. 🏛️ DASHBOARD PEMILAH LIVE (H-1 & H-2 YANG SUDAH DIPERBAIKI)
 # ==============================================================================
 if sheet is not None:
     try:
@@ -111,9 +111,11 @@ if sheet is not None:
             st.write("---")
             st.write("## 🏛️ DASHBOARD LIVE ORDERAN KUMA GIFT")
             
+            # Hitung otomatis tanggal besok (H-1) dan lusa (H-2)
             besok_str = (datetime.today() + timedelta(days=1)).strftime("%Y-%m-%d")
             lusa_str = (datetime.today() + timedelta(days=2)).strftime("%Y-%m-%d")
             
+            # Memilah data berdasarkan kolom Tanggal Pengambilan
             if "Tanggal Pengambilan" in df_all.columns:
                 df_h1 = df_all[df_all["Tanggal Pengambilan"] == besok_str]
                 df_h2 = df_all[df_all["Tanggal Pengambilan"] == lusa_str]
@@ -121,16 +123,25 @@ if sheet is not None:
                 df_h1 = pd.DataFrame()
                 df_h2 = pd.DataFrame()
             
+            # Tampilan menu TAB Dashboard
             tab1, tab2, tab3 = st.tabs(["🚨 Semua Orderan", "⏳ Orderan H-1 (Esok Hari)", "🗓️ Orderan H-2 (Lusa)"])
             
             with tab1:
                 st.write("### Master Data (Seluruh Orderan di Google Sheets)")
                 st.dataframe(df_all)
+                
             with tab2:
                 st.write(f"### 📋 Rangkaian Buket Harus Siap Besok ({besok_str})")
-                st.dataframe(df_h1) if not df_h1.empty else st.info("Aman! Tidak ada pesanan untuk besok.")
+                if not df_h1.empty:
+                    st.dataframe(df_h1)
+                else:
+                    st.info("Aman! Tidak ada pesanan untuk besok.")
+                    
             with tab3:
                 st.write(f"### 📋 Persiapan Bahan / Buket untuk Lusa ({lusa_str})")
-                st.dataframe(df_h2) if not df_h2.empty else st.info("Aman! Tidak ada pesanan untuk lusa.")
+                if not df_h2.empty:
+                    st.dataframe(df_h2)
+                else:
+                    st.info("Aman! Tidak ada pesanan untuk lusa.")
     except Exception as d_error:
         st.info(f"💡 Dashboard Menunggu data: {d_error}")
