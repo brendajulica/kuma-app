@@ -34,47 +34,57 @@ def dapatkan_koneksi_sheets():
 sheet = dapatkan_koneksi_sheets()
 
 # ==============================================================================
-# 2. FORM INPUTAN UTAMA UNTUK KARYAWAN / HP
+# 2. FORM INPUTAN UTAMA DENGAN BORDER & SHADING BENTUK KOTAK CARD
 # ==============================================================================
-st.write("### 📝 Input Orderan Baru")
+st.write("### 📝 Formulir Input Pesanan")
 
-nama_pelanggan = st.text_input("Nama Pelanggan / Pemesan:")
-produk = st.selectbox(
-    "Pilih Jenis Produk:", 
-    ["Buket A = Artifisial", "Buket B = Boneka", "Buket C = Custom (Snack, Uang, dll)", "Buket F = Fresh (Bunga)", "Buket S = Satin", "Acc", "Tas", "Mahar"]
-)
-tema_warna = st.text_input("Tema Warna Buket:")
+# KOTAK 1: DETAIL PRODUK (MENGGUNAKAN BORDER CONTAINER)
+with st.container(border=True):
+    st.markdown("#### 🌸 Detail Pesanan Buket")
+    nama_pelanggan = st.text_input("Nama Pelanggan / Pemesan:")
+    produk = st.selectbox(
+        "Pilih Jenis Produk:", 
+        ["Buket A = Artifisial", "Buket B = Boneka", "Buket C = Custom (Snack, Uang, dll)", "Buket F = Fresh (Bunga)", "Buket S = Satin", "Acc", "Tas", "Mahar"]
+    )
+    tema_warna = st.text_input("Tema Warna Buket:")
 
-st.write("---")
-st.write("### 🚚 Detail Pengiriman / Penerima")
-nama_penerima = st.text_input("Nama Penerima:")
-no_hp_penerima = st.text_input("No HP Penerima:")
-metode = st.radio("Metode Penyerahan Buket:", ["Ambil Sendiri", "Antar / Kirim"])
+st.write("") # Jarak vertikal sedikit
 
-alamat = "-"
-if metode == "Antar / Kirim":
-    alamat = st.text_area("Alamat Lengkap Pengiriman:")
+# KOTAK 2: DETAIL PENGIRIMAN
+with st.container(border=True):
+    st.markdown("#### 🚚 Informasi Pengiriman & Catatan")
+    nama_penerima = st.text_input("Nama Penerima:")
+    no_hp_penerima = st.text_input("No HP Penerima:")
+    metode = st.radio("Metode Penyerahan Buket:", ["Ambil Sendiri", "Antar / Kirim"])
 
-catatan_khusus = st.text_area("Catatan Khusus (Isi Kartu Ucapan / Request Pita / Jam Kirim):", value="-")
+    alamat = "-"
+    if metode == "Antar / Kirim":
+        alamat = st.text_area("Alamat Lengkap Pengiriman:")
 
-# Tanggal Pengambilan otomatis default ke tanggal besok (H-1)
-tanggal_ambil = st.date_input("Tanggal Pengambilan / Pengiriman Orderan:", value=datetime.today() + timedelta(days=1))
+    catatan_khusus = st.text_area("Catatan Khusus (Isi Kartu Ucapan / Request Pita / Jam Kirim):", value="-")
+    
+    # Tanggal Pengambilan otomatis default ke tanggal besok (H-1)
+    tanggal_ambil = st.date_input("Tanggal Pengambilan / Pengiriman Orderan:", value=datetime.today() + timedelta(days=1))
 
-st.write("---")
-st.write("### 💰 Status Pembayaran (Input Angka Saja)")
-total_bayar = st.number_input("Total Bayar Seharusnya (Rp):", min_value=0, step=1000, value=0)
-dp_awal = st.number_input("DP Awal (Rp):", min_value=0, step=1000, value=0)
-kekurangan = total_bayar - dp_awal
+st.write("") 
 
-if kekurangan > 0:
-    st.warning(f"⚠️ Kekurangan Pembayaran: Rp {kekurangan:,.0f}")
-elif kekurangan == 0 and total_bayar > 0:
-    st.success("✅ Lunas!")
+# KOTAK 3: DETAIL PEMBAYARAN (DENGAN REKAP WARNA SECARA KONTRAST)
+with st.container(border=True):
+    st.markdown("#### 💰 Rincian Pembayaran (Input Angka Saja)")
+    total_bayar = st.number_input("Total Bayar Seharusnya (Rp):", min_value=0, step=1000, value=0)
+    dp_awal = st.number_input("DP Awal (Rp):", min_value=0, step=1000, value=0)
+    kekurangan = total_bayar - dp_awal
+
+    # Efek Shading Berwarna Otomatis Berdasarkan Status Lunas/Belum
+    if kekurangan > 0:
+        st.warning(f"⚠️ Kekurangan Pembayaran: Rp {kekurangan:,.0f}")
+    elif kekurangan == 0 and total_bayar > 0:
+        st.success("✅ Lunas!")
 
 st.write("---")
 
 # Tombol Simpan
-if st.button("Simpan Orderan", type="primary"):
+if st.button("Simpan Orderan", type="primary", use_container_width=True):
     if nama_pelanggan:
         if sheet is not None:
             jam_wib = pd.Timestamp.now(tz="Asia/Jakarta").strftime("%Y-%m-%d %H:%M")
@@ -114,23 +124,20 @@ if sheet is not None:
             st.write("---")
             st.write("## 🏛️ DASHBOARD LIVE ORDERAN KUMA GIFT")
             
-            # Hitung otomatis tanggal H-1, H-2, dan H-3 berdasarkan waktu Indonesia
             hari_ini_wib = pd.Timestamp.now(tz="Asia/Jakarta")
             besok_str = (hari_ini_wib + timedelta(days=1)).strftime("%Y-%m-%d")
             lusa_str = (hari_ini_wib + timedelta(days=2)).strftime("%Y-%m-%d")
-            hari_ke3_str = (hari_ini_wib + timedelta(days=3)).strftime("%Y-%m-%d") # Logika tanggal H-3
+            hari_ke3_str = (hari_ini_wib + timedelta(days=3)).strftime("%Y-%m-%d")
             
-            # Memilah data berdasarkan kolom Tanggal Pengambilan
             if "Tanggal Pengambilan" in df_all.columns:
                 df_h1 = df_all[df_all["Tanggal Pengambilan"] == besok_str]
                 df_h2 = df_all[df_all["Tanggal Pengambilan"] == lusa_str]
-                df_h3 = df_all[df_all["Tanggal Pengambilan"] == hari_ke3_str] # Filter data H-3
+                df_h3 = df_all[df_all["Tanggal Pengambilan"] == hari_ke3_str]
             else:
                 df_h1 = pd.DataFrame()
                 df_h2 = pd.DataFrame()
                 df_h3 = pd.DataFrame()
             
-            # Tampilan menu TAB Dashboard (Ditambah opsi H-3)
             tab1, tab2, tab3, tab4 = st.tabs([
                 "🚨 Semua Orderan", 
                 "⏳ Orderan H-1 (Esok Hari)", 
