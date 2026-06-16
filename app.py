@@ -60,43 +60,111 @@ with tab_ops:
             st.success("Data tersimpan!")
             st.rerun()
 
-    # DASHBOARD
-    st.subheader("🏛️ Dashboard Live")
-    
-    if sheet is None:
-        st.error("Koneksi Sheets terputus.")
-    elif df_histori.empty:
-        st.warning("Data kosong! Pastikan Google Sheets memiliki isi.")
-    else:
-        # Debugging: Tampilkan jumlah baris yang ditemukan
-        st.write(f"Total baris ditemukan: {len(df_histori)}")
-        
-        # Filter Status (pastikan tulisan di Sheets 'Belum Selesai')
-        # Kita gunakan .str.contains agar lebih fleksibel terhadap spasi
-        df_aktif = df_histori[df_histori["Status"].str.contains("Belum Selesai", na=False)].copy()
-        
-        if df_aktif.empty:
-            st.warning("Tidak ada data dengan status 'Belum Selesai'. Cek apakah penulisan status di Google Sheets sudah benar.")
-            st.write("Contoh data pertama di sheet Anda:", df_histori.iloc[0].to_dict() if len(df_histori)>0 else "Kosong")
-        else:
-            today = datetime.now().date()
-            tabs = st.tabs(["🚨 Semua", "⏳ H-1", "🗓️ H-2", "📅 H-3", "📆 H-7", "✅ Tandai Selesai"])
+   # ==============================================================================
+# 3. 🏛️ DASHBOARD PEMILAH LIVE (H-1, H-2, H-3, & H-7 REAL-TIME)
+# ==============================================================================
+if sheet is not None:
+    try:
+        records = sheet.get_all_records()
+        if records:
+            df_all = pd.DataFrame(records)
             
-            # ... (Lanjutkan dengan kode tabs seperti sebelumnya) ...
+            st.write("---")
+            st.write("## 🏛️ DASHBOARD LIVE ORDERAN KUMA GIFT")
             
-            def filter_tgl(df, days):
-                target = today + timedelta(days=days)
-                return df[df["Tanggal Pengambilan"].dt.date == target]
+            # Tombol Download Excel
+            buffer = io.BytesIO()
+            with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                df_all.to_excel(writer, index=False, sheet_name='Semua Orderan')
+            buku_excel = buffer.getvalue()
+            
+            st.download_button(
+                label="📥 Download Seluruh Data ke Excel (.xlsx)",
+                data=buku_excel,
+                file_name=f"Rekap_Orderan_KumaGift_{datetime.today().strftime('%Y-%m-%d')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
+            st.write("") 
+            
+            # Perhitungan tanggal otomatis
+            hari_ini_wib = pd.Timestamp.now(tz="Asia/Jakarta")
+            besok_str = (hari_ini_wib + timedelta(days=1)).strftime("%Y-%m-%d")
+            lusa_str = (hari_ini_wib + timedelta(days=2)).strftime("%Y-%m-%d")
+            hari_ke3_str = (hari_ini_wib + timedelta(days=3)).strftime("%Y-%m-%d")
+            hari_ke7_str = (hari_ini_wib + timedelta(days=7)).strftime("%Y-%m-%d") # Logika H-7 seminggu lagi
+            
+            if "Status" in df_all.columns and "Tanggal Pengambilan" in df_all.columns:
+                df_aktif = df_all[df_all["Status"] == "Belum Selesai"]
+                df_h1 = df_aktif[df_aktif["Tanggal Pengambilan"] == besok_str]
+                df_h2 = df_aktif[df_aktif["Tanggal Pengambilan"] == lusa_str]
+                df_h3 = df_aktif[df_aktif["Tanggal Pengambilan"] == hari_ke3_str]
+                df_h7 = df_aktif[df_aktif["Tanggal Pengambilan"] == hari_ke7_str] # Filter H-7
+            else:
+                df_h1, df_h2, df_h3, df_h7 = pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+            
+            # Menu Tab Dashboard (Ditambah opsi H-7)
+            tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+                "🚨 Semua", 
+                "⏳ H-1 (Besok)", 
+                "🗓️ H-2 (Lusa)",
+                "📅 H-3 (3 Hari)",
+                "📆 H-7 (Seminggu)", # TAB BARU H-7
+                "✅ Tandai Selesai"
+            ])
+            
+            with tab1:
+                st.write("### Master Data (Seluruh Orderan di Google Sheets)")
+                st.dataframe(df_all)
+                
+            with tab2:
+                st.write(f"### 📋 Rangkaian Buket Harus Siap Besok ({besok_str})")
+                if not df_h1.empty:
+                    st.dataframe(df_h1)
+                else:
+                    st.info("Aman! Tidak ada pesanan untuk besok.")
+                    
+            with tab3:
+                st.write(f"### 📋 Persiapan Bahan / Buket untuk Lusa ({lusa_str})")
+                if not df_h2.empty:
+                    st.dataframe(df_h2)
+                else:
+                    st.info("Aman! Tidak ada pesanan untuk lusa.")
 
-            with tabs[0]: st.dataframe(df_aktif, use_container_width=True)
-            with tabs[1]: st.dataframe(filter_tgl(df_aktif, 1), use_container_width=True)
-            with tabs[2]: st.dataframe(filter_tgl(df_aktif, 2), use_container_width=True)
-            with tabs[3]: st.dataframe(filter_tgl(df_aktif, 3), use_container_width=True)
-            with tabs[4]: st.dataframe(filter_tgl(df_aktif, 7), use_container_width=True)
-            
-            with tabs[5]:
-                pilihan = st.selectbox("Pilih pesanan selesai:", df_aktif["Nama Pelanggan"] + " (" + df_aktif["Tanggal Pengambilan"].dt.strftime('%d-%m-%Y') + ")")
-                if st.button("Ubah Status ke Selesai"):
-                    idx = df_aktif[df_aktif["Nama Pelanggan"] + " (" + df_aktif["Tanggal Pengambilan"].dt.strftime('%d-%m-%Y') + ")" == pilihan].index[0]
-                    sheet.update_cell(idx + 2, 15, "Selesai")
-                    st.rerun()
+            with tab4:
+                st.write(f"### 📦 List Orderan Masuk untuk 3 Hari ke Depan ({hari_ke3_str})")
+                if not df_h3.empty:
+                    st.dataframe(df_h3)
+                else:
+                    st.info("Aman! Belum ada pesanan masuk untuk 3 hari ke depan.")
+
+            with tab5:
+                st.write(f"### 💐 Persiapan Stok & Bahan untuk Seminggu ke Depan ({hari_ke7_str})")
+                if not df_h7.empty:
+                    st.dataframe(df_h7)
+                else:
+                    st.info("Aman! Belum ada pesanan masuk untuk tepat seminggu ke depan.")
+
+            with tab6:
+                st.write("### 🛠️ Tandai Pesanan yang Sudah Diambil / Dikirim")
+                df_pilihan = df_all[df_all["Status"] == "Belum Selesai"]
+                
+                if not df_pilihan.empty:
+                    pilihan_nama = df_pilihan["Nama Pelanggan"].tolist()
+                    orderan_terpilih = st.selectbox("Pilih Nama Pelanggan yang Sudah Selesai:", pilihan_nama)
+                    
+                    st.warning(f"⚠️ **PENTING:** Pastikan Anda benar-benar ingin menyelesaikan pesanan atas nama: **{orderan_terpilih}**.")
+                    konfirmasi_benar = st.checkbox(f"Ya, saya sudah memeriksa dan nama **{orderan_terpilih}** sudah benar.")
+                    
+                    if st.button("Ubah Status Jadi SELESAI ✅", use_container_width=True, disabled=not konfirmasi_benar):
+                        indeks_baris = df_all[df_all["Nama Pelanggan"] == orderan_terpilled].index[0] + 2 if orderan_terpilih in df_all["Nama Pelanggan"].values else df_all[df_all["Nama Pelanggan"] == orderan_terpilih].index[0] + 2
+                        # Cari indeks baris yang tepat
+                        indeks_baris = df_all[df_all["Nama Pelanggan"] == orderan_terpilih].index[0] + 2
+                        sheet.update_cell(indeks_baris, 14, "Selesai")
+                        st.success(f"👍 Berhasil! Status orderan atas nama {orderan_terpilih} sekarang sudah SELESAI!")
+                        st.rerun()
+                else:
+                    st.info("Semua orderan toko saat ini sudah selesai diproses! Mantap! 🎉")
+                    
+    except Exception as d_error:
+        st.info(f"💡 Dashboard Menunggu data: {d_error}")
