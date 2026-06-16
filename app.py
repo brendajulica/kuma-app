@@ -4,6 +4,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime, timedelta
 import json
+import io
 
 # Konfigurasi Halaman
 st.set_page_config(page_title="Kuma Gift Management", layout="wide")
