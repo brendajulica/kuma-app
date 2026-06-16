@@ -55,7 +55,7 @@ with tab_ops:
         catatan = st.text_area("Catatan Khusus:")
         tgl_ambil = st.date_input("Tanggal Pengambilan:", value=datetime.now() + timedelta(days=1))
         
-        if if st.button("Simpan Orderan", type="primary"):
+        if st.button("Simpan Orderan", type="primary"):
             if sheet is not None:
                 # MENGAMBIL WAKTU TEPAT SAAT TOMBOL DIKLIK
                 waktu_sekarang = datetime.now() 
