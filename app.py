@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import json
 
 st.set_page_config(page_title="Kuma Gift Order Control", layout="wide")
-st.title("🪻 Kuma Gift Order Control (Integrated System)")
+st.title("🪻 Kuma Gift Order Control (Final Integrated Version)")
 
 # 1. KONEKSI & LOAD DATA DENGAN PEMBERSIHAN
 @st.cache_resource
@@ -26,7 +26,7 @@ if sheet:
     try:
         data = sheet.get_all_records()
         df_histori = pd.DataFrame(data)
-        # PEMBERSIHAN DATA (Agar tidak terjadi TypeError)
+        # PEMBERSIHAN DATA (Anti-Eror)
         df_histori = df_histori.fillna("-")
         df_histori["Nama Pelanggan"] = df_histori["Nama Pelanggan"].astype(str)
         df_histori["Pilih Jenis Produk"] = df_histori["Pilih Jenis Produk"].astype(str)
@@ -41,7 +41,7 @@ with st.container(border=True):
     col1, col2 = st.columns(2)
     with col1:
         input_hp = st.text_input("No HP Pelanggan (Cek Histori):")
-        # Logic Auto-Fill
+        # Logika Auto-Fill
         input_hp_clean = str(input_hp).strip()
         data_lama = None
         if not df_histori.empty and input_hp_clean in df_histori["No HP Penerima"].values:
@@ -84,10 +84,17 @@ if sheet and not df_histori.empty:
         if not df_aktif.empty:
             df_aktif["Display"] = df_aktif["Nama Pelanggan"] + " (" + df_aktif["Pilih Jenis Produk"] + ")"
             pilihan = st.selectbox("Pilih yang sudah selesai:", df_aktif["Display"].tolist())
-            if st.button("Ubah Status Jadi SELESAI"):
-                # Mencari indeks baris dengan filter ganda
-                mask = (df_histori["Nama Pelanggan"] == pilihan.split(" (")[0]) & \
-                       (df_histori["Pilih Jenis Produk"] == pilihan.split(" (")[1].replace(")", "")) & \
+            
+            # Verifikasi
+            nama_pilih = pilihan.split(" (")[0]
+            produk_pilih = pilihan.split(" (")[1].replace(")", "")
+            
+            st.info(f"### Verifikasi Pesanan:\n- **Nama:** {nama_pilih}\n- **Produk:** {produk_pilih}")
+            konfirmasi = st.checkbox("Ya, saya sudah memastikan pesanan ini benar-benar SELESAI.")
+            
+            if st.button("Ubah Status Jadi SELESAI", disabled=not konfirmasi):
+                mask = (df_histori["Nama Pelanggan"] == nama_pilih) & \
+                       (df_histori["Pilih Jenis Produk"] == produk_pilih) & \
                        (df_histori["Status"] == "Belum Selesai")
                 if mask.any():
                     idx = df_histori[mask].index[0] + 2
