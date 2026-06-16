@@ -4,6 +4,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime, timedelta
 import json
+import io
 
 st.set_page_config(page_title="Kuma Gift Order Control", layout="centered")
 st.title("🪻 Kuma Gift Order Control (Server Cloud 24 Jam)")
@@ -38,7 +39,6 @@ sheet = dapatkan_koneksi_sheets()
 # ==============================================================================
 st.write("### 📝 Formulir Input Pesanan")
 
-# KOTAK 1: DETAIL PRODUK (MENGGUNAKAN BORDER CONTAINER)
 with st.container(border=True):
     st.markdown("#### 🌸 Detail Pesanan Buket")
     nama_pelanggan = st.text_input("Nama Pelanggan / Pemesan:")
@@ -48,9 +48,8 @@ with st.container(border=True):
     )
     tema_warna = st.text_input("Tema Warna Buket:")
 
-st.write("") # Jarak vertikal sedikit
+st.write("") 
 
-# KOTAK 2: DETAIL PENGIRIMAN
 with st.container(border=True):
     st.markdown("#### 🚚 Informasi Pengiriman & Catatan")
     nama_penerima = st.text_input("Nama Penerima:")
@@ -62,20 +61,16 @@ with st.container(border=True):
         alamat = st.text_area("Alamat Lengkap Pengiriman:")
 
     catatan_khusus = st.text_area("Catatan Khusus (Isi Kartu Ucapan / Request Pita / Jam Kirim):", value="-")
-    
-    # Tanggal Pengambilan otomatis default ke tanggal besok (H-1)
     tanggal_ambil = st.date_input("Tanggal Pengambilan / Pengiriman Orderan:", value=datetime.today() + timedelta(days=1))
 
 st.write("") 
 
-# KOTAK 3: DETAIL PEMBAYARAN (DENGAN REKAP WARNA SECARA KONTRAST)
 with st.container(border=True):
     st.markdown("#### 💰 Rincian Pembayaran (Input Angka Saja)")
     total_bayar = st.number_input("Total Bayar Seharusnya (Rp):", min_value=0, step=1000, value=0)
     dp_awal = st.number_input("DP Awal (Rp):", min_value=0, step=1000, value=0)
     kekurangan = total_bayar - dp_awal
 
-    # Efek Shading Berwarna Otomatis Berdasarkan Status Lunas/Belum
     if kekurangan > 0:
         st.warning(f"⚠️ Kekurangan Pembayaran: Rp {kekurangan:,.0f}")
     elif kekurangan == 0 and total_bayar > 0:
@@ -83,7 +78,6 @@ with st.container(border=True):
 
 st.write("---")
 
-# Tombol Simpan
 if st.button("Simpan Orderan", type="primary", use_container_width=True):
     if nama_pelanggan:
         if sheet is not None:
@@ -113,7 +107,7 @@ if st.button("Simpan Orderan", type="primary", use_container_width=True):
         st.error("Nama pelanggan wajib diisi!")
 
 # ==============================================================================
-# 3. 🏛️ DASHBOARD PEMILAH LIVE (H-1, H-2, & H-3 REAL-TIME)
+# 3. 🏛️ DASHBOARD PEMILAH LIVE + FITUR DOWNLOAD EXCEL
 # ==============================================================================
 if sheet is not None:
     try:
@@ -123,6 +117,22 @@ if sheet is not None:
             
             st.write("---")
             st.write("## 🏛️ DASHBOARD LIVE ORDERAN KUMA GIFT")
+            
+            # --- FUNGSI MERUBAH DATA MENJADI REKAP EXCEL ---
+            buffer = io.BytesIO()
+            with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                df_all.to_excel(writer, index=False, sheet_name='Semua Orderan')
+            buku_excel = buffer.getvalue()
+            
+            # TOMBOL DOWNLOAD EXCEL (Muncul di atas Tab-Tab data)
+            st.download_button(
+                label="📥 Download Seluruh Data ke Excel (.xlsx)",
+                data=buku_excel,
+                file_name=f"Rekap_Orderan_KumaGift_{datetime.today().strftime('%Y-%m-%d')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
+            st.write("") # Jarak pemisah kecil
             
             hari_ini_wib = pd.Timestamp.now(tz="Asia/Jakarta")
             besok_str = (hari_ini_wib + timedelta(days=1)).strftime("%Y-%m-%d")
