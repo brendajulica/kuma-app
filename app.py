@@ -88,10 +88,14 @@ st.write("---")
 if st.button("Simpan Orderan", type="primary", use_container_width=True):
     if nama_pelanggan:
         if sheet is not None:
-            jam_wib = pd.Timestamp.now(tz="Asia/Jakarta").strftime("%Y-%m-%d %H:%M")
+            # 🛠️ PERBAIKAN LOGIKA: Memisahkan Tanggal dan Jam secara real-time WIB
+            waktu_sekarang = pd.Timestamp.now(tz="Asia/Jakarta")
+            tanggal_hari_ini = waktu_sekarang.strftime("%Y-%m-%d") # Kolom 1
+            jam_sekarang = waktu_sekarang.strftime("%H:%M")        # Kolom 2
             
             new_row = [
-                jam_wib,
+                tanggal_hari_ini,  # Masuk ke Kolom 1
+                jam_sekarang,      # Masuk ke Kolom 2
                 nama_pelanggan,
                 produk,
                 tema_warna if tema_warna else "-",
@@ -217,7 +221,8 @@ if sheet is not None:
                     
                     if st.button("Ubah Status Jadi SELESAI ✅", use_container_width=True, disabled=not konfirmasi_benar):
                         indeks_baris = df_all[df_all["Nama Pelanggan"] == orderan_terpilih].index[0] + 2
-                        sheet.update_cell(indeks_baris, 14, "Selesai")
+                        # Karena kita menambah 1 kolom baru, posisi kolom status otomatis bergeser dari 14 ke 15
+                        sheet.update_cell(indeks_baris, 15, "Selesai")
                         st.success(f"👍 Berhasil! Status orderan atas nama {orderan_terpilih} sekarang sudah SELESAI!")
                         st.rerun()
                 else:
