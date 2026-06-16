@@ -10,15 +10,24 @@ st.title("🪻 Kuma Gift Order Control (Server Cloud 24 Jam)")
 # ==============================================================================
 # 1. KONEKSI GOOGLE SHEETS VIA GSPREAD
 # ==============================================================================
+# 1. KONEKSI GOOGLE SHEETS VIA GSPREAD (VERSI CLOUD SECRETS)
+# ==============================================================================
 @st.cache_resource
 def dapatkan_koneksi_sheets():
     try:
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        # Membaca kunci akses digital dari file creds.json di folder yang sama
-        creds = Credentials.from_service_account_file("creds.json", scopes=scope)
+        
+        # Membaca info kredensial langsung dari kotak hitam Secrets [gspread]
+        info_kunci = st.secrets["gspread"]["creds"]
+        
+        # Mengubah teks rahasia menjadi objek kredensial resmi
+        import json
+        info_dict = json.loads(info_kunci)
+        
+        creds = Credentials.from_service_account_info(info_dict, scopes=scope)
         client = gspread.authorize(creds)
         
-        # Nama file spreadsheet Anda di Google Drive (Harus Sama Persis!)
+        # Nama file spreadsheet Anda di Google Drive
         nama_file_sheets = "Database Kuma Gift" 
         return client.open(nama_file_sheets).sheet1
     except Exception as e:
