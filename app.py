@@ -17,20 +17,27 @@ def load_data():
         return pd.DataFrame(), None
         
     try:
-        # Gunakan json.loads langsung pada string secret
         creds_dict = json.loads(st.secrets["gspread"]["creds"])
         gc = gspread.service_account_from_dict(creds_dict)
         sheet = gc.open("Database Kuma Gift").sheet1
         
-        data = sheet.get_all_records()
-        return pd.DataFrame(data), sheet
-    except json.JSONDecodeError:
-        st.error("Format JSON pada Secrets salah. Periksa tanda kutip.")
-        return pd.DataFrame(), None
+        # Ambil data mentah
+        rows = sheet.get_all_values()
+        
+        if len(rows) < 2:
+            st.warning("Sheet kosong atau hanya ada header.")
+            return pd.DataFrame(), sheet
+            
+        # Mengubah baris menjadi DataFrame dengan header dari baris pertama
+        header = rows[0]
+        data = rows[1:]
+        df = pd.DataFrame(data, columns=header)
+        
+        return df, sheet
+        
     except Exception as e:
         st.error(f"Error Koneksi: {e}")
         return pd.DataFrame(), None
-
 df_histori, sheet = load_data()
 
 # Bersihkan Data
