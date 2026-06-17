@@ -25,13 +25,17 @@ def load_data():
 
 df_histori, sheet = load_data()
 
-# Di bagian pembersihan data
+# Bersihkan Data
 if not df_histori.empty:
     df_histori = df_histori.fillna("-")
-    # Gabungkan tanggal dan jam jika ingin dijadikan datetime kembali untuk analisis
-    df_histori["Timestamp"] = pd.to_datetime(df_histori["Tanggal Input"] + ' ' + df_histori["Jam Input"])
-    df_histori["Tanggal Input"] = pd.to_datetime(df_histori["Tanggal Input"], errors='coerce')
-    df_histori["Tanggal Pengambilan"] = pd.to_datetime(df_histori["Tanggal Pengambilan"], errors='coerce')
+    
+    # Pastikan Tanggal Input diubah menjadi format tanggal saja agar tidak ada jam
+    df_histori["Tanggal Input"] = pd.to_datetime(df_histori["Tanggal Input"]).dt.date
+    
+    # Pastikan Tanggal Pengambilan juga bersih
+    df_histori["Tanggal Pengambilan"] = pd.to_datetime(df_histori["Tanggal Pengambilan"]).dt.date
+    
+    df_histori["Status"] = df_histori["Status"].astype(str).str.strip()
 
 # 2. TAB MENU
 tab_ops, tab_laporan = st.tabs(["📋 Operasional Pesanan", "📊 Laporan Bulanan"])
@@ -70,17 +74,34 @@ with tab_ops:
         tgl_ambil = st.date_input("Tanggal Pengambilan:", value=datetime.now() + timedelta(days=1))
         
         if st.button("Simpan Orderan", type="primary"):
-            waktu_sekarang = datetime.now()
-            # Pisahkan tanggal dan jam menjadi variabel berbeda
-            tgl_input = waktu_sekarang.strftime("%Y-%m-%d")
-            jam_input = waktu_sekarang.strftime("%H:%M:%S")
+            # Mengambil waktu saat tombol diklik
+            waktu_klik = datetime.now()
+            
+            # Memisahkan tanggal dan jam
+            tgl_input = waktu_klik.strftime("%Y-%m-%d")
+            jam_input = waktu_klik.strftime("%H:%M:%S")
     
-            # Sesuaikan posisi data_baru
+            # Masukkan ke data_baru (sesuai urutan header Anda)
             data_baru = [
-                tgl_input, jam_input, nama, pilih_kategori, produk, tema, nama, input_hp, 
-                metode, alamat, catatan, tgl_ambil.strftime("%Y-%m-%d"), 
-                total, dp, (total - dp), "Belum Selesai", nama_admin
+                tgl_input,              # Kolom A: Tanggal Input
+                jam_input,              # Kolom B: Jam Input
+                nama,                   # Kolom C
+                pilih_kategori,         # Kolom D
+                produk,                 # Kolom E
+                tema,                   # Kolom F
+                nama,                   # Kolom G
+                input_hp,               # Kolom H
+                metode,                 # Kolom I
+                alamat,                 # Kolom J
+                catatan,                # Kolom K
+                tgl_ambil.strftime("%Y-%m-%d"), # Kolom L
+                total,                  # Kolom M
+                dp,                     # Kolom N
+                (total - dp),           # Kolom O
+                "Belum Selesai",        # Kolom P
+                nama_admin              # Kolom Q
             ]
+            
             sheet.append_row(data_baru)
             st.success("Data tersimpan!")
             st.rerun()
