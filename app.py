@@ -123,7 +123,15 @@ with tab_ops:
                 
                 with tab1:
                     st.write("### Master Data (Pesanan Aktif / Belum Selesai)")
-                    st.dataframe(df_aktif.drop(columns=['Tgl_Check'], errors='ignore'), use_container_width=True)
+    
+                    st.dataframe(
+                        df_aktif.drop(columns=['Tgl_Check'], errors='ignore'),
+                        use_container_width=True,
+                        column_config={
+                            "Tanggal Input": st.column_config.DateColumn("Tanggal Input", format="DD/MM/YYYY"),
+                            "Tanggal Pengambilan": st.column_config.DateColumn("Tanggal Pengambilan", format="DD/MM/YYYY"),
+                        }
+                    )
                     
                 with tab2:
                     st.write(f"### 📋 Rangkaian Buket Harus Siap Besok ({besok_str.strftime('%Y-%m-%d')})")
