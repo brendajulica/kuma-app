@@ -301,4 +301,4 @@ with tab_laporan:
         else:
             st.info("Belum ada data transaksi yang tercatat untuk bulan ini.")
 
-"Update load_data function"
+
