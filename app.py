@@ -10,15 +10,13 @@ import io
 st.set_page_config(page_title="Kuma Gift Management", layout="wide")
 st.title("🪻 Kuma Gift Integrated Management System")
 
-# 1. KONEKSI DATA (Menggunakan cache_data agar lebih mudah refresh)
-@st.cache_data(ttl=10)
+# 1. KONEKSI DATA
+@st.cache_data(ttl=600) # Tingkatkan TTL agar tidak terlalu sering koneksi ulang
 def load_data():
     try:
         if "gspread" in st.secrets:
-            # Load secret
             creds_dict = json.loads(st.secrets["gspread"]["creds"])
-            
-            # Gunakan cara ini yang lebih stabil untuk gspread
+            # Menggunakan service_account() langsung dari gspread
             gc = gspread.service_account_from_dict(creds_dict)
             sheet = gc.open("Database Kuma Gift").sheet1
             
