@@ -66,7 +66,16 @@ with tab_ops:
         with col3:
             total = st.number_input("Total Bayar:", min_value=0)
             dp = st.number_input("DP Awal:", min_value=0)
-            metode_pembayaran = st.radio("Metode Pembayaran DP:", ["Transfer", "Tunai"])
+            
+            # Opsi tunggal untuk status pembayaran
+            metode_pembayaran = st.selectbox("Status Pembayaran:", [
+                "DP Transfer, Pelunasan Transfer",
+                "DP Transfer, Pelunasan Tunai",
+                "DP Tunai, Pelunasan Transfer",
+                "DP Tunai, Pelunasan Tunai"
+            ])
+            
+            st.write(f"Sisa Kekurangan: **Rp {total - dp:,.0f}**")
             
         tema = st.text_input("Tema Warna Buket:")
         alamat = st.text_area("Alamat Lengkap Pengiriman:")
