@@ -1,40 +1,27 @@
 import streamlit as st
 import pandas as pd
 import gspread
-from google.oauth2.service_account import Credentials
-from datetime import datetime, timedelta
-import json
-import io
+from google.oauth2 import service_account
+import gspread
 
-# Konfigurasi Halaman
-st.set_page_config(page_title="Kuma Gift Management", layout="wide")
-st.title("🪻 Kuma Gift Integrated Management System")
-
-# 1. KONEKSI DATA
 @st.cache_data(ttl=600)
 def load_data():
     if "gspread" not in st.secrets:
         return pd.DataFrame(), None
         
     try:
+        # Mengambil kredensial dari secrets
         creds_dict = json.loads(st.secrets["gspread"]["creds"])
-        gc = gspread.service_account_from_dict(creds_dict)
+        
+        # Menggunakan ServiceAccountCredentials secara eksplisit
+        scopes = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
+        creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        
+        gc = gspread.authorize(creds)
         sheet = gc.open("Database Kuma Gift").sheet1
         
-        # Ambil data mentah
-        rows = sheet.get_all_values()
-        
-        if len(rows) < 2:
-            st.warning("Sheet kosong atau hanya ada header.")
-            return pd.DataFrame(), sheet
-            
-        # Mengubah baris menjadi DataFrame dengan header dari baris pertama
-        header = rows[0]
-        data = rows[1:]
-        df = pd.DataFrame(data, columns=header)
-        
-        return df, sheet
-        
+        data = sheet.get_all_records()
+        return pd.DataFrame(data), sheet
     except Exception as e:
         st.error(f"Error Koneksi: {e}")
         return pd.DataFrame(), None
