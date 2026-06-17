@@ -220,36 +220,41 @@ with tab_ops:
 
                 with tab6:
                     st.write("### 🛠️ Tandai Pesanan yang Sudah Diambil / Dikirim")
-                      if not df_aktif.empty:
-                    # Buat label untuk dropdown
-                    df_aktif["Dropdown_Label"] = (
-                        df_aktif["Nama Pelanggan"].astype(str) + 
-                        " -> [" + df_aktif["Pilih Jenis Produk"].astype(str) + "] " +
-                        " (Ambil: " + df_aktif["Tanggal Pengambilan"].dt.strftime('%d-%m-%Y') + ")"
+                    if not df_aktif.empty:
+                        # Menggabungkan Nama Pelanggan, Jenis Produk, dan Tanggal Pengambilan
+                        df_aktif["Dropdown_Label"] = (
+                            df_aktif["Nama Pelanggan"].astype(str) + 
+                            " -> [" + df_aktif["Pilih Jenis Produk"].astype(str) + "] " +
+                            " (Ambil: " + df_aktif["Tanggal Pengambilan"].dt.strftime('%d-%m-%Y') + ")"
                         )
-                    pilihan_label = df_aktif["Dropdown_Label"].tolist()
-        
-                    orderan_terpilih = st.selectbox("Pilih Orderan:", pilihan_label)
-                    konfirmasi_benar = st.checkbox("Ya, saya sudah memeriksa data ini.")
-        
-                    if st.button("Ubah Status Jadi SELESAI ✅", use_container_width=True, disabled=not konfirmasi_benar):
-                        # 1. Bersihkan spasi di kedua sisi agar pencocokan lebih akurat
-                        df_histori["Dropdown_Label_Master"] = (
-                            df_histori["Nama Pelanggan"].astype(str).str.strip() + 
-                            " -> [" + df_histori["Pilih Jenis Produk"].astype(str).str.strip() + "] " +
-                            " (Ambil: " + df_histori["Tanggal Pengambilan"].dt.strftime('%d-%m-%Y') + ")"
-                        )
-            
-                        # 2. Filter data
-                        hasil_filter = df_histori[df_histori["Dropdown_Label_Master"] == orderan_terpilih.strip()]
-            
-                        # 3. Pengecekan aman (Safety Check)
-                        if not hasil_filter.empty:
-                            indeks_baris = hasil_filter.index[0] + 2
-                            sheet.update_cell(indeks_baris, 17, "Selesai")
-                            st.success(f"Berhasil update: {orderan_terpilih}")
-                            st.cache_data.clear()
-                            st.rerun()
+                        pilihan_label = df_aktif["Dropdown_Label"].tolist()
+                        
+                        orderan_terpilih = st.selectbox("Pilih Orderan Pelanggan yang Sudah Selesai:", pilihan_label)
+                        
+                        st.warning(f"⚠️ **PENTING:** Pastikan Anda benar-benar ingin menyelesaikan pesanan: **{orderan_terpilih}**.")
+                        konfirmasi_benar = st.checkbox("Ya, saya sudah memeriksa dan data ini sudah benar.")
+                        
+                        if st.button("Ubah Status Jadi SELESAI ✅", use_container_width=True, disabled=not konfirmasi_benar):
+                            # Membuat pencocokan label pada data utama
+                            df_histori["Dropdown_Label_Master"] = (
+                                df_histori["Nama Pelanggan"].astype(str).str.strip() + 
+                                " -> [" + df_histori["Pilih Jenis Produk"].astype(str).str.strip() + "] " +
+                                " (Ambil: " + df_histori["Tanggal Pengambilan"].dt.strftime('%d-%m-%Y') + ")"
+                            )
+                            
+                            # Cari baris yang sesuai
+                            hasil_filter = df_histori[df_histori["Dropdown_Label_Master"] == orderan_terpilih.strip()]
+                            
+                            if not hasil_filter.empty:
+                                indeks_baris = hasil_filter.index[0] + 2
+                                sheet.update_cell(indeks_baris, 17, "Selesai")
+                                st.success(f"👍 Berhasil! Status orderan {orderan_terpilih} sudah SELESAI!")
+                                st.cache_data.clear()
+                                st.rerun()
+                            else:
+                                st.error("Data tidak ditemukan di database.")
+                    else:
+                        st.info("Semua orderan toko saat ini sudah selesai diproses! Mantap! 🎉")
             else:
                 # Jika ini muncul, berarti ada perbedaan karakter antara dropdown dan database
                 st.error("Data tidak ditemukan di database. Pastikan tidak ada spasi tambahan di Google Sheets.")
