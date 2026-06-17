@@ -15,8 +15,12 @@ def load_data():
         # Load kredensial
         creds_dict = json.loads(st.secrets["gspread"]["creds"])
         
-        # Cara ini lebih aman dari error '_auth_request'
-        gc = gspread.service_account_from_dict(creds_dict)
+        # Gunakan service_account.Credentials.from_service_account_info
+        scopes = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
+        creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        
+        # Otorisasi gspread menggunakan objek creds tersebut
+        gc = gspread.authorize(creds)
         sheet = gc.open("Database Kuma Gift").sheet1
         
         data = sheet.get_all_records()
