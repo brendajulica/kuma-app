@@ -83,17 +83,18 @@ with tab_ops:
         tgl_ambil = st.date_input("Tanggal Pengambilan:", value=datetime.now() + timedelta(days=1))
         
         if st.button("Simpan Orderan", type="primary"):
-            # Mengambil waktu saat tombol diklik
+            # 1. Pastikan waktu didefinisikan
             waktu_klik = datetime.now()
-            
-            # Memisahkan tanggal dan jam
             tgl_input = waktu_klik.strftime("%Y-%m-%d")
             jam_input = waktu_klik.strftime("%H:%M:%S")
-    
-            # Masukkan ke data_baru (sesuai urutan header Anda)
+            
+            # 2. DEFINISIKAN variabel kekurangan DI SINI
+            kekurangan = total - dp
+            
+            # 3. Baru gunakan di dalam data_baru
             data_baru = [
-                tgl_input,              # Kolom A: Tanggal Input
-                jam_input,              # Kolom B: Jam Input
+                tgl_input,              # Kolom A
+                jam_input,              # Kolom B
                 nama,                   # Kolom C
                 pilih_kategori,         # Kolom D
                 produk,                 # Kolom E
@@ -106,13 +107,12 @@ with tab_ops:
                 tgl_ambil.strftime("%Y-%m-%d"), # Kolom L
                 total,                  # Kolom M
                 dp,                     # Kolom N
-                kekurangan,             # O
-                metode_bayar,           # P (Metode Pembayaran)
-                "Belum Selesai",        # Q (Status)
-                nama_admin              # R (Admin)
+                kekurangan,             # Kolom O (Variabel ini sekarang sudah dikenal!)
+                metode_pembayaran,      # Kolom P
+                "Belum Selesai",        # Kolom Q
+                nama_admin              # Kolom R
             ]
             
-            # 4. Simpan ke Sheets
             sheet.append_row(data_baru)
             st.success("Data tersimpan!")
             st.rerun()
