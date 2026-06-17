@@ -45,7 +45,20 @@ with tab_ops:
             input_hp = st.text_input("No HP Penerima:")
             nama = st.text_input("Nama Pelanggan:")
         with col2:
-            produk = st.selectbox("Pilih Jenis Produk:", ["Buket A", "Buket B", "Buket C", "Buket F", "Buket S", "Acc", "Tas", "Mahar"])
+            # 1. Definisikan Katalog
+            katalog = {
+                "Buket": ["Buket Satin", "Buket Fresh Flower", "Buket Snack", "Buket Boneka", "Buket Uang"],
+                "Bloom Box": ["Bloom Box PVC", "Bloom Box Bunga"],
+                "Hampers": ["Parcel Buah", "Hampers Lebaran", "Hampers Custom"],
+                "Lainnya": ["Seserahan", "Mahar", "Frame", "Papan Akrilik"]
+            }
+            
+            # 2. Selectbox Kategori
+            pilih_kategori = st.selectbox("Pilih Kategori:", list(katalog.keys()))
+            
+            # 3. Selectbox Produk (isi otomatis berdasarkan pilihan kategori)
+            produk = st.selectbox("Pilih Jenis Produk:", katalog[pilih_kategori])
+            
             metode = st.selectbox("Metode Penyerahan:", ["Antar/Kirim", "Ambil di Toko"])
         with col3:
             total = st.number_input("Total Bayar:", min_value=0)
@@ -62,8 +75,9 @@ with tab_ops:
             tgl_input = waktu_sekarang.strftime("%Y-%m-%d")
             jam_input = waktu_sekarang.strftime("%H:%M:%S")
     
+            # Sesuaikan posisi data_baru
             data_baru = [
-                tgl_input, jam_input, nama, produk, tema, nama, input_hp, 
+                tgl_input, jam_input, nama, pilih_kategori, produk, tema, nama, input_hp, 
                 metode, alamat, catatan, tgl_ambil.strftime("%Y-%m-%d"), 
                 total, dp, (total - dp), "Belum Selesai", nama_admin
             ]
