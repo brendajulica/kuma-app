@@ -29,12 +29,11 @@ df_histori, sheet = load_data()
 if not df_histori.empty:
     df_histori = df_histori.fillna("-")
     
-    # Pastikan Tanggal Input diubah menjadi format tanggal saja agar tidak ada jam
-    df_histori["Tanggal Input"] = pd.to_datetime(df_histori["Tanggal Input"]).dt.date
+    # Konversi ke format datetime agar bisa diolah (untuk perhitungan bulan/tahun)
+    df_histori["Tanggal Input"] = pd.to_datetime(df_histori["Tanggal Input"], errors='coerce')
+    df_histori["Tanggal Pengambilan"] = pd.to_datetime(df_histori["Tanggal Pengambilan"], errors='coerce')
     
-    # Pastikan Tanggal Pengambilan juga bersih
-    df_histori["Tanggal Pengambilan"] = pd.to_datetime(df_histori["Tanggal Pengambilan"]).dt.date
-    
+    # Membersihkan status agar tidak ada spasi
     df_histori["Status"] = df_histori["Status"].astype(str).str.strip()
 
 # 2. TAB MENU
@@ -157,16 +156,15 @@ with tab_ops:
                 ])
                 
                 with tab1:
-                    st.write("### Master Data (Pesanan Aktif / Belum Selesai)")
+                    st.write("### Master Data")
+                    # Buat salinan data hanya untuk tampilan
+                    df_tampil = df_aktif.copy()
     
-                    st.dataframe(
-                        df_aktif.drop(columns=['Tgl_Check'], errors='ignore'),
-                        use_container_width=True,
-                        column_config={
-                            "Tanggal Input": st.column_config.DateColumn("Tanggal Input", format="DD/MM/YYYY"),
-                            "Tanggal Pengambilan": st.column_config.DateColumn("Tanggal Pengambilan", format="DD/MM/YYYY"),
-                        }
-                    )
+                    # Ubah format menjadi string agar rapi (YYYY-MM-DD)
+                    df_tampil["Tanggal Input"] = df_tampil["Tanggal Input"].dt.strftime('%Y-%m-%d')
+                    df_tampil["Tanggal Pengambilan"] = df_tampil["Tanggal Pengambilan"].dt.strftime('%Y-%m-%d')
+    
+                    st.dataframe(df_tampil, use_container_width=True)
                     
                 with tab2:
                     st.write(f"### 📋 Rangkaian Buket Harus Siap Besok ({besok_str.strftime('%Y-%m-%d')})")
