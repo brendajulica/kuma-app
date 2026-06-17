@@ -25,12 +25,13 @@ def load_data():
 
 df_histori, sheet = load_data()
 
-# Bersihkan Data
+# Di bagian pembersihan data
 if not df_histori.empty:
     df_histori = df_histori.fillna("-")
+    # Gabungkan tanggal dan jam jika ingin dijadikan datetime kembali untuk analisis
+    df_histori["Timestamp"] = pd.to_datetime(df_histori["Tanggal Input"] + ' ' + df_histori["Jam Input"])
     df_histori["Tanggal Input"] = pd.to_datetime(df_histori["Tanggal Input"], errors='coerce')
     df_histori["Tanggal Pengambilan"] = pd.to_datetime(df_histori["Tanggal Pengambilan"], errors='coerce')
-    df_histori["Status"] = df_histori["Status"].astype(str).str.strip() # Menghapus spasi tersembunyi
 
 # 2. TAB MENU
 tab_ops, tab_laporan = st.tabs(["📋 Operasional Pesanan", "📊 Laporan Bulanan"])
@@ -56,10 +57,19 @@ with tab_ops:
         tgl_ambil = st.date_input("Tanggal Pengambilan:", value=datetime.now() + timedelta(days=1))
         
         if st.button("Simpan Orderan", type="primary"):
-            data_baru = [datetime.now().strftime("%Y-%m-%d"), datetime.now().strftime("%H:%M"), nama, produk, tema, nama, input_hp, metode, alamat, catatan, tgl_ambil.strftime("%Y-%m-%d"), total, dp, (total - dp), "Belum Selesai", nama_admin]
-            sheet.append_row(data_baru)
-            st.success("Data tersimpan!")
-            st.rerun()
+    waktu_sekarang = datetime.now()
+    # Pisahkan tanggal dan jam menjadi variabel berbeda
+    tgl_input = waktu_sekarang.strftime("%Y-%m-%d")
+    jam_input = waktu_sekarang.strftime("%H:%M:%S")
+    
+    data_baru = [
+        tgl_input, jam_input, nama, produk, tema, nama, input_hp, 
+        metode, alamat, catatan, tgl_ambil.strftime("%Y-%m-%d"), 
+        total, dp, (total - dp), "Belum Selesai", nama_admin
+    ]
+    sheet.append_row(data_baru)
+    st.success("Data tersimpan!")
+    st.rerun()
 
 # 3. 🏛️ DASHBOARD PEMILAH LIVE
     if sheet is not None:
