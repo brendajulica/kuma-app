@@ -114,13 +114,15 @@ with tab_ops:
                 nama_admin              # R: Nama Admin
             ]
             
-            # Gunakan try-except untuk menangkap error koneksi dengan jelas
+           # GANTI BAGIAN sheet.append_row(data_baru) DENGAN INI:
             try:
-                sheet.append_row(data_baru)
+                # Menggunakan metode yang lebih rendah (low-level) yang jarang bermasalah
+                sheet.append_rows([data_baru], value_input_option='USER_ENTERED')
                 st.success("Data tersimpan!")
                 st.rerun()
             except Exception as e:
-                st.error(f"Gagal menyimpan ke Google Sheets: {e}")
+                # Jika masih error, tampilkan detail errornya agar kita tahu persis letak masalahnya
+                st.error(f"Gagal simpan (Detail: {e})")
 
 # 3. 🏛️ DASHBOARD PEMILAH LIVE
     if sheet is not None:
