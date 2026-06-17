@@ -11,15 +11,21 @@ st.set_page_config(page_title="Kuma Gift Management", layout="wide")
 st.title("🪻 Kuma Gift Integrated Management System")
 
 # 1. KONEKSI DATA (Menggunakan cache_data agar lebih mudah refresh)
-@st.cache_data(ttl=10) # Data akan di-refresh setiap 10 detik
+@st.cache_data(ttl=10)
 def load_data():
     try:
         if "gspread" in st.secrets:
-            creds = Credentials.from_service_account_info(json.loads(st.secrets["gspread"]["creds"]), scopes=["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"])
-            sheet = gspread.authorize(creds).open("Database Kuma Gift").sheet1
+            # Load secret
+            creds_dict = json.loads(st.secrets["gspread"]["creds"])
+            
+            # Gunakan cara ini yang lebih stabil untuk gspread
+            gc = gspread.service_account_from_dict(creds_dict)
+            sheet = gc.open("Database Kuma Gift").sheet1
+            
             data = sheet.get_all_records()
             return pd.DataFrame(data), sheet
-    except:
+    except Exception as e:
+        st.error(f"Error Koneksi: {e}")
         return pd.DataFrame(), None
     return pd.DataFrame(), None
 
