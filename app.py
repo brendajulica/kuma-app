@@ -57,19 +57,19 @@ with tab_ops:
         tgl_ambil = st.date_input("Tanggal Pengambilan:", value=datetime.now() + timedelta(days=1))
         
         if st.button("Simpan Orderan", type="primary"):
-    waktu_sekarang = datetime.now()
-    # Pisahkan tanggal dan jam menjadi variabel berbeda
-    tgl_input = waktu_sekarang.strftime("%Y-%m-%d")
-    jam_input = waktu_sekarang.strftime("%H:%M:%S")
+            waktu_sekarang = datetime.now()
+            # Pisahkan tanggal dan jam menjadi variabel berbeda
+            tgl_input = waktu_sekarang.strftime("%Y-%m-%d")
+            jam_input = waktu_sekarang.strftime("%H:%M:%S")
     
-    data_baru = [
-        tgl_input, jam_input, nama, produk, tema, nama, input_hp, 
-        metode, alamat, catatan, tgl_ambil.strftime("%Y-%m-%d"), 
-        total, dp, (total - dp), "Belum Selesai", nama_admin
-    ]
-    sheet.append_row(data_baru)
-    st.success("Data tersimpan!")
-    st.rerun()
+            data_baru = [
+                tgl_input, jam_input, nama, produk, tema, nama, input_hp, 
+                metode, alamat, catatan, tgl_ambil.strftime("%Y-%m-%d"), 
+                total, dp, (total - dp), "Belum Selesai", nama_admin
+            ]
+            sheet.append_row(data_baru)
+            st.success("Data tersimpan!")
+            st.rerun()
 
 # 3. 🏛️ DASHBOARD PEMILAH LIVE
     if sheet is not None:
