@@ -83,39 +83,40 @@ with tab_ops:
         tgl_ambil = st.date_input("Tanggal Pengambilan:", value=datetime.now() + timedelta(days=1))
         
         if st.button("Simpan Orderan", type="primary"):
-            # 1. Pastikan waktu didefinisikan
             waktu_klik = datetime.now()
             tgl_input = waktu_klik.strftime("%Y-%m-%d")
             jam_input = waktu_klik.strftime("%H:%M:%S")
-            
-            # 2. DEFINISIKAN variabel kekurangan DI SINI
             kekurangan = total - dp
             
-            # 3. Baru gunakan di dalam data_baru
+            # URUTAN 18 KOLOM SESUAI HEADER ANDA
             data_baru = [
-                tgl_input,              # Kolom A
-                jam_input,              # Kolom B
-                nama,                   # Kolom C
-                pilih_kategori,         # Kolom D
-                produk,                 # Kolom E
-                tema,                   # Kolom F
-                nama,                   # Kolom G
-                input_hp,               # Kolom H
-                metode,                 # Kolom I
-                alamat,                 # Kolom J
-                catatan,                # Kolom K
-                tgl_ambil.strftime("%Y-%m-%d"), # Kolom L
-                total,                  # Kolom M
-                dp,                     # Kolom N
-                kekurangan,             # Kolom O (Variabel ini sekarang sudah dikenal!)
-                metode_pembayaran,      # Kolom P
-                "Belum Selesai",        # Kolom Q
-                nama_admin              # Kolom R
+                tgl_input,              # A: Tanggal Input
+                jam_input,              # B: Jam Input
+                nama,                   # C: Nama Pelanggan
+                pilih_kategori,         # D: Pilih Kategori
+                produk,                 # E: Pilih Jenis Produk
+                tema,                   # F: Tema Warna
+                nama,                   # G: Nama Penerima (Saya asumsikan sama dengan nama pelanggan, sesuaikan jika ada input terpisah)
+                input_hp,               # H: No HP Penerima
+                metode,                 # I: Metode Penyerahan
+                alamat,                 # J: Alamat Lengkap Pengiriman
+                catatan,                # K: Catatan Khusus
+                tgl_ambil.strftime("%Y-%m-%d"), # L: Tanggal Pengambilan
+                total,                  # M: Total Bayar Seharusnya
+                dp,                     # N: DP Awal
+                kekurangan,             # O: Kekurangan
+                metode_pembayaran,      # P: Metode Pembayaran
+                "Belum Selesai",        # Q: Status
+                nama_admin              # R: Nama Admin
             ]
             
-            sheet.append_row(data_baru)
-            st.success("Data tersimpan!")
-            st.rerun()
+            # Gunakan try-except untuk menangkap error koneksi dengan jelas
+            try:
+                sheet.append_row(data_baru)
+                st.success("Data tersimpan!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Gagal menyimpan ke Google Sheets: {e}")
 
 # 3. 🏛️ DASHBOARD PEMILAH LIVE
     if sheet is not None:
@@ -232,8 +233,8 @@ with tab_ops:
                             )
                             indeks_baris = df_histori[df_histori["Dropdown_Label_Master"] == orderan_terpilih].index[0] + 2
                             
-                            # Update status ke kolom ke-15 di Google Sheets
-                            sheet.update_cell(indeks_baris, 15, "Selesai")
+                            # Update status ke kolom ke-17 di Google Sheets
+                            sheet.update_cell(indeks_baris, 17, "Selesai")
                             st.success(f"👍 Berhasil! Status orderan {orderan_terpilih} sekarang sudah SELESAI!")
                             st.cache_data.clear()
                             st.rerun()
