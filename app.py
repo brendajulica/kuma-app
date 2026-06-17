@@ -1,8 +1,10 @@
 import streamlit as st
 import pandas as pd
 import gspread
+import json  # TAMBAHKAN INI
+from datetime import datetime, timedelta  # TAMBAHKAN INI
 from google.oauth2 import service_account
-import gspread
+import io # Tambahkan juga ini agar fungsi download excel tidak error
 
 @st.cache_data(ttl=600)
 def load_data():
