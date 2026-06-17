@@ -251,6 +251,7 @@ with tab_ops:
                                 st.success(f"👍 Berhasil! Status orderan {orderan_terpilih} sudah SELESAI!")
                                 st.cache_data.clear()
                                 st.rerun()
+                    except Exception as e:
                             else:
                                 st.error("Data tidak ditemukan di database.")
                     else:
