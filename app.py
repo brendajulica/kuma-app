@@ -66,6 +66,7 @@ with tab_ops:
         with col3:
             total = st.number_input("Total Bayar:", min_value=0)
             dp = st.number_input("DP Awal:", min_value=0)
+            metode_pembayaran = st.radio("Metode Pembayaran DP:", ["Transfer", "Tunai"])
             
         tema = st.text_input("Tema Warna Buket:")
         alamat = st.text_area("Alamat Lengkap Pengiriman:")
@@ -96,11 +97,13 @@ with tab_ops:
                 tgl_ambil.strftime("%Y-%m-%d"), # Kolom L
                 total,                  # Kolom M
                 dp,                     # Kolom N
-                (total - dp),           # Kolom O
-                "Belum Selesai",        # Kolom P
-                nama_admin              # Kolom Q
+                kekurangan,             # O
+                metode_bayar,           # P (Metode Pembayaran)
+                "Belum Selesai",        # Q (Status)
+                nama_admin              # R (Admin)
             ]
             
+            # 4. Simpan ke Sheets
             sheet.append_row(data_baru)
             st.success("Data tersimpan!")
             st.rerun()
