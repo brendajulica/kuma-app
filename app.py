@@ -122,6 +122,7 @@ with tab_ops:
             try:
                 # Menggunakan metode yang lebih rendah (low-level) yang jarang bermasalah
                 sheet.append_rows([data_baru], value_input_option='USER_ENTERED')
+                st.cache_data.clear()
                 st.success("Data tersimpan!")
                 st.rerun()
             except Exception as e:
