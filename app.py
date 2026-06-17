@@ -11,21 +11,23 @@ st.set_page_config(page_title="Kuma Gift Management", layout="wide")
 st.title("🪻 Kuma Gift Integrated Management System")
 
 # 1. KONEKSI DATA
-@st.cache_data(ttl=600) # Tingkatkan TTL agar tidak terlalu sering koneksi ulang
+@st.cache_data(ttl=600)
 def load_data():
+    if "gspread" not in st.secrets:
+        st.error("Secrets tidak ditemukan!")
+        return pd.DataFrame(), None
+        
     try:
-        if "gspread" in st.secrets:
-            creds_dict = json.loads(st.secrets["gspread"]["creds"])
-            # Menggunakan service_account() langsung dari gspread
-            gc = gspread.service_account_from_dict(creds_dict)
-            sheet = gc.open("Database Kuma Gift").sheet1
-            
-            data = sheet.get_all_records()
-            return pd.DataFrame(data), sheet
+        creds_dict = json.loads(st.secrets["gspread"]["creds"])
+        # Menggunakan metode yang lebih stabil
+        gc = gspread.service_account_from_dict(creds_dict)
+        sheet = gc.open("Database Kuma Gift").sheet1
+        
+        data = sheet.get_all_records()
+        return pd.DataFrame(data), sheet
     except Exception as e:
         st.error(f"Error Koneksi: {e}")
         return pd.DataFrame(), None
-    return pd.DataFrame(), None
 
 df_histori, sheet = load_data()
 
