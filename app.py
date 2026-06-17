@@ -12,14 +12,11 @@ def load_data():
         return pd.DataFrame(), None
         
     try:
-        # Mengambil kredensial dari secrets
+        # Load kredensial
         creds_dict = json.loads(st.secrets["gspread"]["creds"])
         
-        # Menggunakan ServiceAccountCredentials secara eksplisit
-        scopes = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-        creds = service_account.Credentials.from_service_account_info(creds_dict, scopes=scopes)
-        
-        gc = gspread.authorize(creds)
+        # Cara ini lebih aman dari error '_auth_request'
+        gc = gspread.service_account_from_dict(creds_dict)
         sheet = gc.open("Database Kuma Gift").sheet1
         
         data = sheet.get_all_records()
@@ -27,6 +24,7 @@ def load_data():
     except Exception as e:
         st.error(f"Error Koneksi: {e}")
         return pd.DataFrame(), None
+        
 df_histori, sheet = load_data()
 
 # Bersihkan Data
